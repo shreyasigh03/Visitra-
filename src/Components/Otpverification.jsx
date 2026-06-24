@@ -5,6 +5,11 @@ import { Navigate, useLocation } from 'react-router-dom';
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
 import { QRCode } from "react-qr-code";
+import { API_BASE_URL } from "../config";
+
+
+
+
 const Otpverification = () => {
   const location = useLocation();
   //variable hai jisme eamail ko val store h jo user n dali hai
@@ -64,7 +69,7 @@ const Otpverification = () => {
 async function sendOtp() {
   try {
     setLoadingOtp(true);
-    await fetch("http://localhost:5001/api/visitor/send-otp", {
+    await fetch(`${API_BASE_URL}/api/visitor/send-otp`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json"
@@ -89,7 +94,7 @@ async function sendOtp() {
 async function handleVerifyOtp() {
   try {
     setVerifyingOtp(true);
-    const res = await fetch("http://localhost:5001/api/visitor/verify-otp", {
+    const res = await fetch(`${API_BASE_URL}/api/visitor/verify-otp`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json"

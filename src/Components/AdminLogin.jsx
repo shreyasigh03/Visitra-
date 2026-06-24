@@ -3,6 +3,7 @@ import Navbar from "./Navbar";
 import { useState, useEffect } from "react";
 //first pg p jake pg ka /... bnao fir navigate ka use krke us /   ko lgao jaha lgana ho
 import { useNavigate } from "react-router-dom";
+import { API_BASE_URL } from "../config";
 
 const AdminLogin = () => {
   const [Email, setEmail] = useState("");
@@ -14,7 +15,7 @@ const AdminLogin = () => {
     e.preventDefault();
 
     try {
-      const res = await fetch("http://localhost:5001/api/admin/login", {
+      const res = await fetch(`${API_BASE_URL}/api/admin/login`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json"

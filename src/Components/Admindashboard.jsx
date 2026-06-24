@@ -4,8 +4,9 @@ import React from 'react'
 import { MdOutlinePendingActions } from "react-icons/md";
 import Adminnavbar from './Adminnavbar';
 import { RiGroupFill } from "react-icons/ri";
+import { API_BASE_URL } from "../config";
 
-
+//deploy krne ke lie api)uri add krdia h local host hta dia hai
 const Admindashboard = () => {
 
   const [visitors, setVisitors] = useState([]);
@@ -48,7 +49,7 @@ const Admindashboard = () => {
   
 
   useEffect(() => {
-    fetch("http://localhost:5001/api/visitor/all")
+    fetch(`${API_BASE_URL}/api/visitor/all`)
       .then(res => res.json())
       .then(data => setVisitors(data))
       .catch(err => console.log(err));
@@ -103,7 +104,7 @@ const Admindashboard = () => {
     }
 
     try {
-      await fetch(`http://localhost:5001/api/visitor/update/${id}`, {
+      await fetch(`${API_BASE_URL}/api/visitor/update/${id}`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json"
@@ -119,7 +120,7 @@ const Admindashboard = () => {
     if (!verifyId) return;
 
     try {
-      const res = await fetch(`http://localhost:5001/api/visitor/verify/${verifyId}`);
+      const res = await fetch(`${API_BASE_URL}/api/visitor/verify/${verifyId}`);
       const data = await res.json();
 
       if (data.status === "valid") {

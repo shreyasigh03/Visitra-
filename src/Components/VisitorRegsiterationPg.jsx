@@ -8,6 +8,9 @@ import { IoMdPhotos } from "react-icons/io";
 import { IoIosArrowDown } from "react-icons/io";
 import { NavLink } from 'react-router-dom'
 import { useNavigate } from "react-router-dom";
+import { API_BASE_URL } from "../config";
+
+
 
 const VisitorRegsiterationPg = () => {
   const [Name, setName] = useState('');
@@ -77,7 +80,7 @@ const VisitorRegsiterationPg = () => {
       };
 
       try {
-        const res = await fetch("http://localhost:5001/api/visitor/register", {
+        const res = await fetch(`${API_BASE_URL}/api/visitor/register`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json"
