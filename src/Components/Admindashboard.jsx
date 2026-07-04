@@ -23,23 +23,23 @@ const Admindashboard = () => {
   const rejectedCount = visitors.filter(v => v.status === "rejected").length;
   const todayDate = new Date().toISOString().split("T")[0];
   const todayVisits = visitors.filter(v => (v.date || "").startsWith(todayDate)).length;
-  const approvalRate = totalVisits
-    ? ((approvedCount / totalVisits) * 100).toFixed(1)
-    : 0;
+  // const approvalRate = totalVisits
+  //   ? ((approvedCount / totalVisits) * 100).toFixed(1)
+  //   : 0;
 
-  const aiInsight = approvalRate >= 70
-    ? "High visitor approval rate detected"
-    : "Review visitor approval patterns";
+  // const aiInsight = approvalRate >= 70
+  //   ? "High visitor approval rate detected"
+  //   : "Review visitor approval patterns";
 
-  const riskLevel =
-    rejectedCount > approvedCount / 2
-      ? "HIGH"
-      : "LOW";
+  // const riskLevel =
+  //   rejectedCount > approvedCount / 2
+  //     ? "HIGH"
+  //     : "LOW";
 
-  const aiRecommendation =
-    riskLevel === "HIGH"
-      ? "Monitor visitor approvals closely."
-      : "No unusual activity detected.";
+  // const aiRecommendation =
+  //   riskLevel === "HIGH"
+  //     ? "Monitor visitor approvals closely."
+  //     : "No unusual activity detected.";
   const [verifyId, setVerifyId] = useState("");
   const [verifyResult, setVerifyResult] = useState(null);
   const [selectedVisitor, setSelectedVisitor] = useState(null);
@@ -197,7 +197,7 @@ const Admindashboard = () => {
         </div>
 
       </div>
-
+{/* 
       <div className="mx-[5%] mt-4 bg-white/90 border border-gray-200 rounded-2xl shadow-sm p-4">
         <h2 className="text-lg font-semibold mb-3 text-gray-800">AI Visitor Analytics</h2>
 
@@ -216,9 +216,9 @@ const Admindashboard = () => {
             <p className="text-sm text-gray-600">Today's Visitors</p>
             <p className="text-xl font-bold mt-1">{todayVisits}</p>
           </div>
-        </div>
+        </div> */}
 
-        <div className="mt-3 p-2.5 bg-gray-50 rounded-xl border text-sm">
+        {/* <div className="mt-3 p-2.5 bg-gray-50 rounded-xl border text-sm">
           <strong>AI Insight:</strong> {aiInsight}
         </div>
 
@@ -229,7 +229,7 @@ const Admindashboard = () => {
         <div className="mt-2 p-2.5 bg-blue-50 rounded-xl border text-sm">
           <strong>AI Recommendation:</strong> {aiRecommendation}
         </div>
-      </div>
+      </div> */}
 
        <div className="flex justify-between items-center mt-[3%] mx-[5%]">
   <h1 className='text-[150%] font-bold'>VISITORS</h1>

@@ -23,6 +23,7 @@ const Navbar = () => {
         
         <NavLink to="/Feature"><li className='flex'>Features </li></NavLink>
         <NavLink to="/Works"><li className='flex'>How it works </li></NavLink>
+        <NavLink to="/Facerecognition"><li className='flex'>Face Recognition</li></NavLink>
         
       </ul>
       </nav>

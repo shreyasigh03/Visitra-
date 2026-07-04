@@ -27,3 +27,14 @@ dist-ssr
 .env
 backend/.env
 .vercel
+
+# Python
+ai-service/venv/
+__pycache__/
+*.pyc
+
+# Uploaded images
+backend/upload/
+
+# Environment files
+.env

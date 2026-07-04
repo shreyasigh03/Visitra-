@@ -1,31 +1,248 @@
 const sendEmail = require("../utils/sendEmail");
 const express = require("express");
+const upload=require("../middleware/upload");
 
 //router server hai idhr
 const router = express.Router();
 const Visitor = require("../models/Visitor");
 const Otp = require("../models/Otp");
 
-// Register visitor
-router.post("/register", async (req, res) => {
-  try {
-    const { name, email, phone, reason, toMeet, date, passId } = req.body;
+const axios = require("axios");
+const path = require("path");
 
-    global.tempVisitor = {
-      name,
-      email,
-      phone,
-      reason,
-      toMeet,
-      date,
-      passId
-    };
+
+
+
+
+// Register visitor
+router.post("/register",upload.single("photo"), async (req, res) => {
+  try {
+    
+    //check file ari h ya nhi ari
+    console.log(req.body);
+    console.log(req.file);
+
+
+      // 👇 YAHAN ye code likhna hai
+    const imagePath = path.resolve(req.file.path);
+
+    //axios return krta h output object form mai
+    const response = await axios.post(
+      "http://127.0.0.1:8000/generate-embedding",
+      {
+        image_path: imagePath
+      }
+    );
+   console.log(response.data);
+    //jo hmne photo di h regiter k tym agr usme face hi nhi h toh no face detect error aaeag or database m save hi nhi hgi
+    if (!response.data.success) {
+    return res.status(400).json({
+        success: false,
+        
+        message: response.data.message
+    });
+}
+
+    
+
+    // Ab MongoDB me save karna
+    const visitor = new Visitor({
+      ...req.body,
+      
+      photo: req.file.path,
+      faceEncoding: response.data.embedding
+    });
+
+
+   
+
+    await visitor.save();
+    console.log("after save");
 
     res.status(200).json({ message: "Details received. Please verify OTP." });
   } catch (error) {
+    console.log("Error while saving visitor:", error);
     res.status(500).json({ error: "Error saving visitor" });
   }
 });
+
+
+
+// router.post("/verify-face", upload.single("img"),async(req,res)=>{
+//   const imgpath=path.resolve(req.file.path);
+//   try{
+//     const response=await axios.post("http://127.0.0.1:8000/generate-embedding", {
+//       image_path: imgpath
+//     });
+//     //agr face hi detect nhi hua toh --success fail aya toh
+
+//     if (!response.data.success) {
+//     return res.status(400).json({
+//         success: false,
+//         message: response.data.message
+//     });
+// }
+
+
+//     const visitors=await Visitor.find({
+//       status:"approved",
+//     },{
+//       faceEncoding:1
+//     })
+//     const liveEmbedding=response.data.embedding;
+
+//     const compare= await axios.post("http://127.0.0.1:8000/compare-embeding",{
+//       //json format m data jaega
+//       visitors,
+//       liveEmbedding
+
+//     });
+//     if(!compare.data.success){
+//       //mtlb mathc nhi hua face
+//       return res.json({
+//         "success":false,
+//         "message":"Face not Recognized"
+//       })
+//     }
+//     //match hgya toh visitor ki details bhj do 
+//     const visitor=await Visitor.findById(compare.data.visitor_id);
+//      //agr bychnace visitor dlt hgya toh 
+//      if(!visitor){
+//       return res.json({
+//         "status":false,
+//         "message":"Visitor not found"
+
+//       })
+//     }
+
+//     Date().now
+
+//     return res.json({
+//       "success":true,
+//       "similarity":compare.data.similarity,
+//       "visitor": visitor,
+//       "message":"Match Found"
+//     })
+
+   
+   
+//   } catch (error) {
+//     console.error("Error while verifying face:", error);
+//     res.status(500).json({ error: "Error verifying face" });
+//   }
+// });
+
+
+
+
+router.post("/verify-face", upload.single("img"), async (req, res) => {
+  const imgpath = path.resolve(req.file.path);
+  try {
+    const response = await axios.post("http://127.0.0.1:8000/generate-embedding", {
+      image_path: imgpath,
+    });
+
+    // agr face hi detect nhi hua toh --success fail aya toh
+    if (!response.data.success) {
+      return res.status(400).json({
+        success: false,
+        message: response.data.message,
+      });
+    }
+
+    // NOTE: yaha status:"approved" wala filter hata diya hai
+    // kyunki humein har visitor (approved/pending/rejected) ko
+    // pehchan-ke uski entry/exit log karni hai, sirf approved wale ko nhi
+    const visitors = await Visitor.find(
+      {},
+      {
+        faceEncoding: 1,
+      }
+    );
+    const liveEmbedding = response.data.embedding;
+
+    const compare = await axios.post("http://127.0.0.1:8000/compare-embeding", {
+      visitors,
+      liveEmbedding,
+    });
+
+    if (!compare.data.success) {
+      // mtlb match nhi hua face
+      return res.json({
+        success: false,
+        message: "Face not Recognized",
+      });
+    }
+
+    // match hgya toh visitor ki details nikal lo
+    let visitor = await Visitor.findById(compare.data.visitor_id);
+
+    // agr bychance visitor delete hgya toh
+    if (!visitor) {
+      return res.json({
+        success: false,
+        message: "Visitor not found",
+      });
+    }
+
+    // ---- ENTRY / EXIT TIME LOGIC ----
+    const now = new Date();
+    let entryStatus = ""; // "entry" ya "exit" — frontend ko batane ke liye kya record hua
+
+    if (!visitor.entryTime) {
+      // pehli baar scan hua -> entry time set karo
+      visitor.entryTime = now;
+      entryStatus = "entry";
+    } else if (visitor.entryTime && !visitor.exitTime) {
+      // pehle se entry hai, exit nhi -> ye scan exit maana jaega
+      visitor.exitTime = now;
+      entryStatus = "exit";
+    } else {
+      // pehle entry+exit dono ho chuke the -> naya visit cycle shuru,
+      // purani entry/exit reset karke fresh entry maano
+      visitor.entryTime = now;
+      visitor.exitTime = null;
+      entryStatus = "entry";
+    }
+
+    await visitor.save();
+
+    // visitor "approved" hai ya nhi, wo alag se batao
+    // (entry/exit record ho jaegi chahe approved ho ya na ho)
+    const authorized = visitor.status === "approved";
+
+    let finalSuccess;
+    let finalMessage;
+
+    if(authorized){
+      finalSuccess=true;
+      finalMessage="Entry Granted - Authorized Visitor";
+
+
+    }
+    else{
+      finalSuccess=false;
+      finalMessage=" Not Authorized - Entry not Granted ";
+
+    }
+
+    return res.json({
+      success:finalSuccess,
+      similarity: compare.data.similarity,
+      visitor,
+      entryStatus, // "entry" | "exit"
+      
+     message:finalMessage
+    });
+  } catch (error) {
+    console.error("Error while verifying face:", error);
+    res.status(500).json({ error: "Error verifying face" });
+  }
+});
+
+
+
+
 
 //admin wale pg p sari details idhr se fecth hri hai 
 router.get("/all", async (req, res) => {
@@ -146,12 +363,20 @@ router.post("/send-otp", async (req, res) => {
     // delete old OTP if exists
     await Otp.deleteMany({ email });
 
-    // store new OTP in DB
-    await Otp.create({
-      email,
-      otp,
-      expiresAt: new Date(Date.now() + 2 * 60 * 1000)
-    });
+    // // store new OTP in DB
+    // await Otp.create({
+    //   email,
+    //   otp,
+    //   expiresAt: new Date(Date.now() + 1 * 60 * 1000)
+    // });
+
+ const newOtp = new Otp({
+  email,
+  otp,
+  expiresAt: new Date(Date.now() + 1 * 60 * 1000),
+});
+
+await newOtp.save();
 
     await sendEmail(email, otp);
 
@@ -175,21 +400,25 @@ router.post("/verify-otp", async (req, res) => {
 
     if (Date.now() > record.expiresAt) {
       await Otp.deleteMany({ email });
+      await Visitor.findOneAndUpdate(
+        {email},
+        {status:"verified"
+        })
+
       return res.json({ status: "expired" });
     }
 
     if (record.otp === otp) {
       await Otp.deleteMany({ email });
-
-      if (global.tempVisitor && global.tempVisitor.email === email) {
-        const visitor = new Visitor(global.tempVisitor);
-        await visitor.save();
-        global.tempVisitor = null;
-      }
+      
+      await Visitor.findOneAndUpdate(
+        {email},
+        {status:"verified"
+        })
 
       return res.json({ status: "verified" });
     } else {
-      return res.json({ status: "invalid" });
+      return res.json({ status: "invalid OTP" });
     }
   } catch (error) {
     res.status(500).json({ status: "error" });

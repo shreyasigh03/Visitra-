@@ -6,8 +6,11 @@ import { useNavigate } from "react-router-dom";
 import logo from "../assets/visitra_logo.png";
 
 const Adminnavbar = () => {
+
   const [showLogout, setShowLogout] = useState(false);
+
   const navigate=useNavigate();
+
   function handleLogout() {
     localStorage.removeItem("isAdmin");
     navigate("/AdminLogin", { replace: true });
@@ -30,6 +33,8 @@ const Adminnavbar = () => {
           <NavLink to="/Adminprofile">
             <li className="flex">Profile </li>
           </NavLink>
+
+          <NavLink to="/Adminentry"><li className="flex">Visitor Details </li></NavLink>
 
 
           <button onClick={() => setShowLogout(!showLogout)}>Logout</button>

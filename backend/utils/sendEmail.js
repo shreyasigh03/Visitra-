@@ -2,13 +2,17 @@ const nodemailer = require("nodemailer");
 
 const sendEmail = async (to, otp) => {
   try {
+    //transporter --is a object tht makes connection with a smtp server --and used to send emails 
     const transporter = nodemailer.createTransport({
+      //mtlb kaha bhjna hai email gmail pe
       service: "gmail",
+      //kis email se bhjna hai uska pass bhi dena pdega
       auth: {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASS
       }
     });
+    //sendMail --is a method of transporter object --used to send emails
 
     await transporter.sendMail({
       from: process.env.EMAIL_USER,
@@ -36,7 +40,7 @@ const sendEmail = async (to, otp) => {
 
     console.log("Email sent successfully");
   } catch (error) {
-    console.log("Email error:", error);
+    console.log("Email Server error:", error);
   }
 };
 

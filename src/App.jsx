@@ -9,6 +9,8 @@ import Admindashboard from './Components/Admindashboard'
 import Adminprofile from './Components/Adminprofile'
 import Feature from './Components/Feature'
 import Howitworks from './Components/Howitworks'
+import Facerecognition from './Components/Facerecognition'
+import Adminentry from './Components/Adminentry'
 
 function App() {
   const router = createBrowserRouter([
@@ -47,6 +49,14 @@ function App() {
       {
       path: "/Works",
       element: <Howitworks/>
+    },
+     {
+      path: "/Facerecognition",
+      element: <Facerecognition/>
+    },
+    {
+      path: "/Adminentry",
+      element: <Adminentry/>
     }
   ])
 
