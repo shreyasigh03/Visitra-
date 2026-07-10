@@ -24,7 +24,7 @@ const Adminnavbar = () => {
           <img src={logo} alt="logo" className="h-8 w-auto" />
           {/* <span className="font-bold text-lg">VISITRA</span> */}
         </div>
-        <ul className="flex gap-20">
+        <ul className="flex gap-14">
           {/* //icons css */}
           <NavLink to="/Admindashboard">
             <li className="flex">Home</li>
@@ -37,7 +37,7 @@ const Adminnavbar = () => {
           <NavLink to="/Adminentry"><li className="flex">Visitor Details </li></NavLink>
 
 
-          <button onClick={() => setShowLogout(!showLogout)}>Logout</button>
+          <button className=" pb-2" onClick={() => setShowLogout(!showLogout)}>Logout</button>
           {showLogout && (
             <div className="absolute right-5 top-16 w-64 bg-white shadow-xl rounded-xl p-4">
               <p className="text-gray-700 text-sm mb-4">

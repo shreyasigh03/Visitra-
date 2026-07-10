@@ -76,7 +76,7 @@ const Facerecognition = () => {
     <div className="min-h-screen bg-slate-100">
       <Navbar />
 
-      <div className="mx-auto max-w-5xl px-4 py-10 md:py-16">
+      <div className="mx-auto max-w-5xl px-4 py-10 md:py-16 mt-8">
         <header className="mb-8 text-center">
           <h1 className="text-2xl font-bold text-slate-800 md:text-3xl">
             Visitor Face Verification
@@ -104,7 +104,7 @@ const Facerecognition = () => {
             <button
               onClick={verify}
               disabled={status === "loading"}
-              className="mt-4 w-full rounded-xl bg-indigo-600 py-3 font-medium text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:bg-indigo-300"
+              className="mt-4 w-full rounded-xl bg-[#BED73F] py-3 font-medium text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:bg-indigo-300"
             >
               {status === "loading" ? "Verifying..." : "Capture & Verify"}
             </button>

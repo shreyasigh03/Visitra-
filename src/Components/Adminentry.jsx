@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { API_BASE_URL } from "../config";
 import Navbar from "./Navbar";
+import Adminnavbar from "./Adminnavbar";
 
 // status label -> badge color classes (same style as the main dashboard table)
 const STATUS_STYLES = {
@@ -45,6 +46,7 @@ const VisitorEntryExit = () => {
       const data = await res.json();
 
       setVisitors(data);
+      setLoading(false);
 
 
     } catch (err) {
@@ -61,7 +63,7 @@ const VisitorEntryExit = () => {
 
   return (
     <div className="min-h-screen bg-slate-50">
-      <Navbar />
+      <Adminnavbar />
 
       <div className="mx-auto max-w-6xl px-4 py-8">
         <h1 className="mb-6 text-2xl font-bold text-slate-800">
@@ -81,7 +83,7 @@ const VisitorEntryExit = () => {
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
-            className="rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-lime-400"
+            className="appearance-none rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-lime-400"
           >
             <option value="All">All Status</option>
             <option value="approved">Approved</option>

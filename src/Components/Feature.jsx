@@ -5,6 +5,10 @@ const Feature = () => {
 
 const features = [
   {
+    title: "AI-Powered Face Recognition",
+    desc: "Instantly identify visitors with secure AI-based facial recognition for faster and contactless check-ins."
+  },
+  {
     title: "Smart Visitor Registration",
     desc: "Quick and easy visitor registration with user-friendly forms."
   },
@@ -28,6 +32,7 @@ const features = [
     title: "Real-time Notifications",
     desc: "Get instant updates about visitor requests and approvals."
   }
+   
 ];
 
 
@@ -35,6 +40,8 @@ const features = [
 
     <>
     <Navbar/>
+      
+
       
       <div className='my-10'>
       <h1 className='text-[200%] mt-[6%] font-bold text-center'>Secure & Smart Visitor Experience</h1>
