@@ -153,12 +153,15 @@ router.post("/verify-face", upload.single("img"), async (req, res) => {
     // NOTE: yaha status:"approved" wala filter hata diya hai
     // kyunki humein har visitor (approved/pending/rejected) ko
     // pehchan-ke uski entry/exit log karni hai, sirf approved wale ko nhi
-    const visitors = await Visitor.find(
-      {},
-      {
-        faceEncoding: 1,
-      }
-    );
+   // yaha maine editing ki hai mai shreya hu.. thi*
+   const visitors = await Visitor.find(
+  {
+    faceEncoding: { $exists: true, $ne: [] }
+  },
+  {
+    faceEncoding: 1,
+  }
+   );
     const liveEmbedding = response.data.embedding;
 
     const compare = await axios.post("http://127.0.0.1:8000/compare-embeding", {
