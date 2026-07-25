@@ -73,74 +73,83 @@ const Facerecognition = () => {
   const hasResult = status === "granted" || status === "denied";
 
   return (
-    <div className="min-h-screen bg-slate-100">
+    <div className="min-h-screen">
       <Navbar />
 
-      <div className="mx-auto max-w-5xl px-4 py-10 md:py-16 mt-8">
+      <div className="mx-auto max-w-5xl px-4 pb-16 pt-4 md:pt-8" style={{ animation: "fadeUp .5s ease both" }}>
         <header className="mb-8 text-center">
-          <h1 className="text-2xl font-bold text-slate-800 md:text-3xl">
-            Visitor Face Verification
+          <h1 className="font-display text-[26px] font-extrabold tracking-tight md:text-[34px]">
+            Face-verified entry
           </h1>
-          <p className="mt-1 text-sm text-slate-500">
+          <p className="mt-1.5 text-[15px] text-[var(--muted)]">
             Position your face in the frame and capture to verify your entry pass.
           </p>
         </header>
 
         <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
           {/* ---------- Camera panel ---------- */}
-          <section className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
-            <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500">
-              Camera
-            </h2>
+          <section className="clay rounded-[28px] p-5 sm:p-7">
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="font-display text-[15px] font-extrabold">Camera</h2>
+              <span className="flex items-center gap-1.5 text-xs font-extrabold text-[var(--muted)]">
+                <span className="h-2 w-2 rounded-full bg-[#3FBF7F]" />
+                LIVE
+              </span>
+            </div>
 
-            <div className="overflow-hidden rounded-xl bg-slate-900">
+            <div className="relative overflow-hidden rounded-[22px] bg-[#141727]" style={{ boxShadow: "var(--shadow-clay-sm)" }}>
               <Webcam
                 ref={webcamRef}
                 screenshotFormat="image/jpeg"
                 className="w-full"
               />
+              <div className="pointer-events-none absolute inset-4 rounded-2xl border-[1.5px] border-white/10" />
             </div>
 
             <button
               onClick={verify}
               disabled={status === "loading"}
-              className="mt-4 w-full rounded-xl bg-[#BED73F] py-3 font-medium text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:bg-indigo-300"
+              className="btn-primary mt-4.5 w-full py-3.5 text-[15px]"
             >
               {status === "loading" ? "Verifying..." : "Capture & Verify"}
             </button>
 
             {error && (
-              <p className="mt-3 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">
+              <p className="mt-3 rounded-[14px] px-3.5 py-2.5 text-sm font-bold"
+                style={{ background: "var(--bad-bg)", color: "var(--bad-fg)" }}>
                 {error}
               </p>
             )}
           </section>
 
           {/* ---------- Result panel ---------- */}
-          <section className="rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200">
-            <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-slate-500">
-              Recognition Result
-            </h2>
+          <section className="clay rounded-[28px] p-5 sm:p-7">
+            <h2 className="font-display mb-4 text-[15px] font-extrabold">Recognition Result</h2>
 
             {!hasResult && status !== "loading" && (
-              <p className="text-sm text-slate-400">
+              <div className="rounded-[20px] border-[1.5px] border-dashed px-6 py-10 text-center text-sm font-semibold text-[var(--muted)]"
+                style={{ borderColor: "var(--line)" }}>
                 Your verification result will appear here.
-              </p>
+              </div>
             )}
 
             {status === "loading" && (
-              <p className="text-sm text-slate-400">Checking against visitor records...</p>
+              <div className="rounded-[20px] border-[1.5px] border-dashed px-6 py-10 text-center text-sm font-semibold text-[var(--muted)]"
+                style={{ borderColor: "var(--line)" }}>
+                Checking against visitor records...
+              </div>
             )}
 
             {hasResult && (
-              <div className="space-y-4">
+              <div className="space-y-4" style={{ animation: "fadeUp .35s ease both" }}>
                 {/* status banner */}
                 <div
-                  className={`flex items-center gap-3 rounded-xl px-4 py-3 ${
+                  className="flex items-center gap-3.5 rounded-[18px] px-4.5 py-3.5"
+                  style={
                     status === "granted"
-                      ? "bg-green-50 text-green-700"
-                      : "bg-red-50 text-red-700"
-                  }`}
+                      ? { background: "var(--ok-bg)", color: "var(--ok-fg)" }
+                      : { background: "var(--bad-bg)", color: "var(--bad-fg)" }
+                  }
                 >
                   {status === "granted" ? (
                     <VscVerifiedFilled className="shrink-0 text-2xl" />
@@ -148,10 +157,10 @@ const Facerecognition = () => {
                     <VscError className="shrink-0 text-2xl" />
                   )}
                   <div>
-                    <p className="font-semibold">
+                    <p className="text-[15px] font-extrabold">
                       {status === "granted" ? "Entry Granted" : "Entry Denied"}
                     </p>
-                    <p className="text-xs opacity-80">
+                    <p className="text-xs font-semibold opacity-80">
                       {message}
                       {similarity !== null && ` · ${similarity}% match`}
                     </p>
@@ -164,7 +173,8 @@ const Facerecognition = () => {
                     <img
                       src={preview}
                       alt="Captured face"
-                      className="h-28 w-28 shrink-0 rounded-xl object-cover ring-1 ring-slate-200"
+                      className="h-28 w-28 shrink-0 rounded-[20px] object-cover"
+                      style={{ boxShadow: "var(--shadow-clay-sm)" }}
                     />
                   )}
 
@@ -172,13 +182,13 @@ const Facerecognition = () => {
                     <dl className="flex-1 space-y-1.5 text-sm">
                       {DETAIL_FIELDS.map(({ key, label, icon: Icon }) => (
                         <div key={key} className="flex items-center gap-2">
-                          <Icon className="shrink-0 text-slate-400" />
-                          <dt className="w-16 shrink-0 text-slate-500">{label}</dt>
+                          <Icon className="shrink-0 text-[var(--muted)]" />
+                          <dt className="w-16 shrink-0 font-semibold text-[var(--muted)]">{label}</dt>
                           <dd
                             className={
                               key === "status"
-                                ? "font-medium capitalize text-slate-700"
-                                : "text-slate-700"
+                                ? "font-extrabold capitalize"
+                                : "font-semibold"
                             }
                           >
                             {visitor[key] || "—"}
@@ -187,15 +197,15 @@ const Facerecognition = () => {
                       ))}
                     </dl>
                   ) : (
-                    <p className="flex-1 self-center text-sm text-slate-400">
+                    <p className="flex-1 self-center text-sm text-[var(--muted)]">
                       No matching visitor record found.
                     </p>
                   )}
                 </div>
 
                 {status === "granted" && visitor?.name && (
-                  <p className="text-sm text-slate-500">
-                    Welcome, <span className="font-medium text-slate-700">{visitor.name}</span>!
+                  <p className="text-sm text-[var(--muted)]">
+                    Welcome, <span className="font-extrabold text-[var(--ink)]">{visitor.name}</span> — your host has been notified.
                   </p>
                 )}
               </div>

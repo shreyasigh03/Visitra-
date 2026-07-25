@@ -1,6 +1,6 @@
 import React from "react";
 import Navbar from "./Navbar";
-import { useState, useEffect,useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import html2canvas from "html2canvas";
 import jsPDF from "jspdf";
@@ -11,7 +11,7 @@ const Otpverification = () => {
   //jo pichlie pg se data aaya hai usko access krne k lie
   const location = useLocation();
   const navigate = useNavigate();
-  const intervalRef=useRef(null);
+  const intervalRef = useRef(null);
   if (!location.state?.fromForm) {
     navigate("/", { replace: true });
   }
@@ -45,7 +45,6 @@ const Otpverification = () => {
     let imgWidth = pageWidth - 20; // margins
     let imgHeight = (canvas.height * imgWidth) / canvas.width;
 
-    // अगर image height page se badi hai → scale down
     if (imgHeight > pageHeight - 20) {
       imgHeight = pageHeight - 20;
       imgWidth = (canvas.width * imgHeight) / canvas.height;
@@ -74,9 +73,7 @@ const Otpverification = () => {
 
       setLoadingOtp(false);
       setotpSent(true);
-      // setEnteredOtp("");
     } catch (err) {
-
       console.log(err);
       setLoadingOtp(false);
     }
@@ -86,16 +83,13 @@ const Otpverification = () => {
     if (localStorage.getItem("otpVerified")) {
       localStorage.removeItem("otpVerified");
     }
-      localStorage.removeItem("endTime"); 
-//phli br otp pg khula khulte hi otp send hua 
+    localStorage.removeItem("endTime");
+    //phli br otp pg khula khulte hi otp send hua
     sendOtp();
   }, []);
 
-
   //jb bhi resend otp p click krenge toh sendotp wala func chla--usse trigger update hua ye useeffect chla --isse timer ki val dec hgi
   useEffect(() => {
-
-    
     //otp kb expire hga vo time
     const savedEndTime = Number(localStorage.getItem("endTime"));
     let endTime;
@@ -108,29 +102,22 @@ const Otpverification = () => {
     }
 
     endTime = savedEndTime;
-    //arrow function hai jo timer ko update krega
-    
+
     const updateTimer = () => {
       //remaining time nikalega seconds mai
       const remainingTime = Math.floor((endTime - Date.now()) / 1000);
-       if(remainingTime<=0){
-      setTimer(0);
-      clearInterval(intervalRef.current);
-      return;
-    }
+      if (remainingTime <= 0) {
+        setTimer(0);
+        clearInterval(intervalRef.current);
+        return;
+      }
 
-      //timer m vo time set --fir jaise hi state update hui pg re-render hua toh timer scrren pe update
-      //agr 0 hgya toh 0 show krdo  - m nhi leke jaenge
-      //agr 0 hgya toh --resend wala btn show
       setTimer(remainingTime > 0 ? remainingTime : 0);
     };
-   
+
     updateTimer(); // immediately update timer to avoid flicker
-    //hr ek sec k bd update timer func call krega
-     intervalRef.current = setInterval(updateTimer, 1000);
+    intervalRef.current = setInterval(updateTimer, 1000);
 
-
-    //isse interval stop hojaega nhi krge toh vo hr ek sec bd cal krta rhega updateTimer ko
     return () => clearInterval(intervalRef.current);
   }, [trigger]);
 
@@ -148,25 +135,20 @@ const Otpverification = () => {
       const data = await res.json();
 
       if (data.status === "verified") {
- setVerifyingOtp(false);
-           clearInterval(intervalRef.current);
-  setTimer(0);
-  localStorage.removeItem("endTime"); 
-
+        setVerifyingOtp(false);
+        clearInterval(intervalRef.current);
+        setTimer(0);
+        localStorage.removeItem("endTime");
 
         setIsVerified(true);
         localStorage.removeItem("otpAccess");
         localStorage.setItem("otpVerified", "true");
         setMessage({ text: "OTP verified successfully ✔", type: "success" });
         setShowSuccessAnim(true);
-        // setEnteredOtp("");
         setTimer(0);
         setTimeout(() => setShowSuccessAnim(false), 1500);
-       
       } else if (data.status === "expired") {
         setMessage({ text: "OTP expired ⏰ Please resend OTP", type: "error" });
-        // 
-        // setEnteredOtp("");
         setTimer(0);
         setVerifyingOtp(false);
       } else {
@@ -181,14 +163,10 @@ const Otpverification = () => {
         text: "Something went wrong!",
         type: "error",
       });
-     
     }
   }
 
   function handleInstantvisit() {
-
-
-    
     if (!isVerified) {
       setMessage({ text: "Please verify OTP first ❌", type: "error" });
       return;
@@ -203,19 +181,11 @@ const Otpverification = () => {
   }
 
   function handleBookvisit() {
-    ///toh request sent hjaegi admin ke pass or uska data save hjaega database mai -------backend
-    //jb bhi prev val ko upadte krna ho or udko local storgae p store krana ho toh aise kro ---always return in this syntax of setpending(prev=>{})
-    //-----------------------------
-
-    //setstate state chnge krega or re-render hne k bd hi chnges hnge jidhr bhi state use hui hai pr local m nhi hnge jb tk manulally chnge na kro useeffect gake ki jb bhi state chnge ho local storage p data chnges hjae
-    // setpendingRequest(prev=>prev+1);
-    // localStorage.setItem("pendingrequest",JSON.stringify(pendingRequest));
     if (!isVerified) {
-      
       setMessage({ text: "Please verify OTP first ❌", type: "error" });
       return;
     }
-setTimer(0);
+    setTimer(0);
     setMessage({
       text: "Request sent. Waiting for admin approval.",
       type: "info",
@@ -236,31 +206,25 @@ setTimer(0);
   }
 
   return (
-    <div>
+    <div className="min-h-screen">
       <style>{animationStyle}</style>
       <Navbar />
-      <div
-        className="container ml-[37%]  place-items-center mt-[8%] w-[30%]"
-        style={{
-          marginLeft: "37%",
-          padding: "25px",
-          borderRadius: "15px",
-          background: "#ffffff",
-          boxShadow: "0 10px 25px rgba(0,0,0,0.1)",
-          border: "1px solid #e5e7eb",
-        }}
-      >
-        <h1 className="text-[180%] font-bold ">OTP VERIFICATION </h1>
-        {/* agr js k kisi bhi chij ko use krna h jsx mai toh use {} */}
-        <div className="gap-7 mt-[1%] mb-[1%]">
-          <p className="text-[105%] pt-[1.9%] mb-[3%]">
-            Please enter the OTP(One-Time-Password)sent to your registered
-            email/phone number to complete your verification.
+
+      <div className="mx-auto w-full max-w-[520px] px-4 pb-16 pt-6 sm:pt-12" style={{ animation: "fadeUp .5s ease both" }}>
+        <div className="clay rounded-[28px] p-6 sm:p-9">
+          <div className="font-display mb-4 flex h-14 w-14 items-center justify-center rounded-[18px] text-lg font-extrabold"
+            style={{ background: "var(--accent-soft)", color: "var(--accent)", boxShadow: "var(--shadow-clay-sm)" }}>
+            OTP
+          </div>
+          <h1 className="font-display mb-2 text-[26px] font-extrabold tracking-tight">OTP verification</h1>
+          {/* agr js k kisi bhi chij ko use krna h jsx mai toh use {} */}
+          <p className="mb-6 text-[14.5px] leading-relaxed text-[var(--muted)]">
+            Please enter the one-time password sent to your registered email to
+            complete your verification.
           </p>
 
-          <div className="flex">
+          <div className="flex gap-3">
             <input
-            //maxlength no input p work nhi krta
               type="text"
               inputMode="numeric"
               maxLength={4}
@@ -270,168 +234,156 @@ setTimer(0);
                 setMessage({ text: "", type: "" });
               }}
               value={enteredOtp}
-              //phn p send hga toh name ki jrurt nhi h bec local storage p store nbhi hra--------
               placeholder="Enter OTP sent on your email"
-              className="w-[75%]  mb-3 p-2 border rounded"
+              className="input-clay mb-3 w-full font-display text-center text-lg font-bold tracking-[.35em]"
             />
 
-            {/* //ye ternary cond h toh agr true h toh btn dikhao nhi h toh kch mt dkhao */}
-            {/* //same logic hai agr--input enter krdia or uski length>3 h toh
-              //ek btn show hojaega --initialy verifying otp ki val false hai toh btn pe verify itp aajaega 
-              //uspe click krne pr verifyingotp h vo true hojaege agr or btn pe show hojaega verifying otp or disabled hjaega mtlb uspe click nhi kr paenge
-              //jb otp verified krke response agya toh verifyingotp firse false hojaega  */}
-            {enteredOtp.length == 4  && !isVerified && (
+            {enteredOtp.length == 4 && !isVerified && (
               <button
                 onClick={handleVerifyOtp}
                 disabled={verifyingOtp}
-                className="bg-[var(--bg-color)] w-20 ml-5 rounded hover:bg-[var(--hover-color)] text-[var(--primary-color)] mb-3"
+                className="btn-primary mb-3 shrink-0 px-5 text-sm"
               >
                 {verifyingOtp ? "Verifying..." : "Verify"}
               </button>
             )}
           </div>
-        </div>
 
-        {showSuccessAnim && (
-          <div
-            style={{
-              position: "fixed",
-              top: "20px",
-              right: "20px",
-              background: "#22c55e",
-              color: "#fff",
-              padding: "10px 15px",
-              borderRadius: "10px",
-              boxShadow: "0 4px 10px rgba(0,0,0,0.2)",
-              animation: "fadeInOut 1.5s ease",
-            }}
-          >
-            ✔ Success
-          </div>
-        )}
-
-        {message.text && (
-          <p
-            style={{
-              marginBottom: "20px",
-              padding: "8px 12px",
-              borderRadius: "8px",
-              background:
-                message.type === "success"
-                  ? "#dcfce7"
-                  : message.type === "error"
-                    ? "#fee2e2"
-                    : "#e5e7eb",
-              color:
-                message.type === "success"
-                  ? "#166534"
-                  : message.type === "error"
-                    ? "#991b1b"
-                    : "#374151",
-              fontWeight: "500",
-              textAlign: "center",
-              transition: "all 0.3s ease",
-            }}
-          >
-            {message.text}
-          </p>
-        )}
-        
-       
-        {!isVerified && Timer > 0 && (
-          <p>Resend OTP in {Timer} seconds</p>
-        )}
-        {Timer == 0 && !isVerified &&(
-          <>
-            <button
-              onClick={sendOtp}
-              disabled={loadingOtp || Timer > 0}
-              className="bg-[var(--bg-color)] w-102 p-2 rounded hover:bg-[var(--hover-color)] text-[var(--primary-color)] mb-3 disabled:opacity-50"
+          {showSuccessAnim && (
+            <div
+              className="fixed right-5 top-5 z-50 rounded-2xl px-4 py-2.5 text-sm font-extrabold"
+              style={{
+                background: "var(--ok-bg)",
+                color: "var(--ok-fg)",
+                boxShadow: "var(--shadow-clay)",
+                animation: "fadeInOut 1.5s ease",
+              }}
             >
-              {loadingOtp ? "Sending..." : "Didn't get the code? Resend OTP"}
+              ✔ Success
+            </div>
+          )}
+
+          {message.text && (
+            <p
+              className="mb-5 rounded-[14px] px-3.5 py-2.5 text-center text-[13.5px] font-bold transition-all"
+              style={{
+                background:
+                  message.type === "success"
+                    ? "var(--ok-bg)"
+                    : message.type === "error"
+                      ? "var(--bad-bg)"
+                      : "var(--surface)",
+                color:
+                  message.type === "success"
+                    ? "var(--ok-fg)"
+                    : message.type === "error"
+                      ? "var(--bad-fg)"
+                      : "var(--muted)",
+              }}
+            >
+              {message.text}
+            </p>
+          )}
+
+          {!isVerified && Timer > 0 && (
+            <p className="text-[13.5px] text-[var(--muted)]">
+              Resend available in <strong className="text-[var(--ink)]">{Timer}s</strong>
+            </p>
+          )}
+          {Timer == 0 && !isVerified && (
+            <>
+              <button
+                onClick={sendOtp}
+                disabled={loadingOtp || Timer > 0}
+                className="btn-soft mb-3 w-full py-3 text-sm"
+              >
+                {loadingOtp ? "Sending..." : "Didn't get the code? Resend OTP"}
+              </button>
+            </>
+          )}
+
+          <div className="mt-4 flex gap-3 border-t pt-5" style={{ borderColor: "var(--line)" }}>
+            <button
+              onClick={handleInstantvisit}
+              className="mb-1 flex-1 cursor-pointer rounded-2xl py-3 text-sm font-extrabold transition hover:-translate-y-0.5"
+              style={{ background: "var(--accent-soft)", color: "var(--accent)", boxShadow: "var(--shadow-clay-sm)" }}
+            >
+              Instant Visit
             </button>
-          </>
-        )}
-
-
-        <div className="flex gap-5">
-          <button
-            onClick={handleInstantvisit}
-            className="bg-[var(--bg-color)] w-25 mt  p-1 rounded hover:bg-[var(--hover-color)] text-[var(--primary-color)] mb-3"
-          >
-            Instant Visit
-          </button>
-          <button
-            onClick={handleBookvisit}
-            className="bg-[var(--bg-color)] w-29 p-1 mr-3 rounded hover:bg-[var(--hover-color)] text-[var(--primary-color)] mb-3"
-          >
-            Book Visit
-          </button>
-        </div>
-
-        <div
-          id="pass"
-          style={{
-            display: "none",
-            marginTop: "20px",
-            padding: "20px",
-            border: "2px solid #333",
-            borderRadius: "15px",
-            background: "linear-gradient(135deg,#d9f99d,#bef264)",
-            boxShadow: "0 4px 10px rgba(0,0,0,0.2)",
-            color: "#000",
-          }}
-        >
-          <h2
-            style={{
-              fontSize: "20px",
-              fontWeight: "bold",
-              marginBottom: "10px",
-            }}
-          >
-            🎟️ Visitor Pass
-          </h2>
-          <h3 style={{ marginBottom: "10px", fontWeight: "bold" }}>VISITRA</h3>
-
-          <p>
-            <strong>Name:</strong> {localStorage.getItem("Name")}
-          </p>
-          <p>
-            <strong>Email:</strong> {email}
-          </p>
-          <p>
-            <strong>Phone:</strong> {localStorage.getItem("Phone")}
-          </p>
-          <p>
-            <strong>To Meet:</strong> {localStorage.getItem("Meet")}
-          </p>
-          <p>
-            <strong>Time:</strong> {new Date().toLocaleString()}
-          </p>
-          <p style={{ fontSize: "18px", fontWeight: "bold", marginTop: "8px" }}>
-            Pass ID: {localStorage.getItem("passId")}
-          </p>
-          <div style={{ marginTop: "10px", textAlign: "center" }}>
-            <QRCode
-              value={localStorage.getItem("passId") || "NoPass"}
-              size={130}
-            />
+            <button
+              onClick={handleBookvisit}
+              className="btn-soft mb-1 flex-1 py-3 text-sm"
+            >
+              Book Visit
+            </button>
           </div>
+          <p className="mt-3 text-center text-[12.5px] text-[var(--muted)]">
+            Instant visit issues your pass now · Book visit sends a request for admin approval.
+          </p>
 
-          <button
-            onClick={downloadPass}
+          <div
+            id="pass"
+            className="mt-5 rounded-[24px] p-6"
             style={{
-              marginTop: "15px",
-              padding: "10px",
-              width: "100%",
-              borderRadius: "8px",
-              background: "#000",
-              color: "#fff",
-              cursor: "pointer",
+              display: "none",
+              background: "var(--card)",
+              border: "1px solid var(--glass-line)",
+              boxShadow: "var(--shadow-clay)",
+              color: "var(--ink)",
             }}
           >
-            Download Pass
-          </button>
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="font-display text-[13px] font-extrabold tracking-[.14em] text-[var(--muted)]">
+                VISITOR PASS
+              </h2>
+              <span className="rounded-full px-2.5 py-1 text-[11px] font-extrabold tracking-wide"
+                style={{ background: "var(--ok-bg)", color: "var(--ok-fg)" }}>
+                VERIFIED
+              </span>
+            </div>
+            <h3 className="font-display mb-4 text-lg font-extrabold">VISITRA</h3>
+
+            <div className="mb-4 grid grid-cols-2 gap-2.5 text-[13px]">
+              <div className="tile px-3 py-2.5">
+                <div className="text-[10.5px] font-extrabold tracking-wider text-[var(--muted)]">NAME</div>
+                <div className="mt-0.5 font-extrabold">{localStorage.getItem("Name")}</div>
+              </div>
+              <div className="tile px-3 py-2.5">
+                <div className="text-[10.5px] font-extrabold tracking-wider text-[var(--muted)]">EMAIL</div>
+                <div className="mt-0.5 break-all font-extrabold">{email}</div>
+              </div>
+              <div className="tile px-3 py-2.5">
+                <div className="text-[10.5px] font-extrabold tracking-wider text-[var(--muted)]">PHONE</div>
+                <div className="mt-0.5 font-extrabold">{localStorage.getItem("Phone")}</div>
+              </div>
+              <div className="tile px-3 py-2.5">
+                <div className="text-[10.5px] font-extrabold tracking-wider text-[var(--muted)]">TO MEET</div>
+                <div className="mt-0.5 font-extrabold">{localStorage.getItem("Meet")}</div>
+              </div>
+              <div className="tile col-span-2 px-3 py-2.5">
+                <div className="text-[10.5px] font-extrabold tracking-wider text-[var(--muted)]">TIME</div>
+                <div className="mt-0.5 font-extrabold">{new Date().toLocaleString()}</div>
+              </div>
+            </div>
+
+            <p className="font-display mb-3 text-lg font-extrabold">
+              Pass ID: {localStorage.getItem("passId")}
+            </p>
+            <div className="tile flex justify-center rounded-[18px] p-4">
+              <QRCode
+                value={localStorage.getItem("passId") || "NoPass"}
+                size={130}
+              />
+            </div>
+
+            <button
+              onClick={downloadPass}
+              className="mt-4 w-full cursor-pointer rounded-2xl py-3.5 text-sm font-extrabold transition hover:-translate-y-0.5"
+              style={{ background: "var(--ink)", color: "var(--bg)", boxShadow: "var(--shadow-clay-sm)" }}
+            >
+              Download Pass
+            </button>
+          </div>
         </div>
       </div>
     </div>

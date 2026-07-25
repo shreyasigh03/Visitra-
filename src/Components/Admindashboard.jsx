@@ -24,23 +24,7 @@ const Admindashboard = () => {
   const todayVisits = visitors.filter((v) =>
     (v.date || "").startsWith(todayDate),
   ).length;
-  // const approvalRate = totalVisits
-  //   ? ((approvedCount / totalVisits) * 100).toFixed(1)
-  //   : 0;
 
-  // const aiInsight = approvalRate >= 70
-  //   ? "High visitor approval rate detected"
-  //   : "Review visitor approval patterns";
-
-  // const riskLevel =
-  //   rejectedCount > approvedCount / 2
-  //     ? "HIGH"
-  //     : "LOW";
-
-  // const aiRecommendation =
-  //   riskLevel === "HIGH"
-  //     ? "Monitor visitor approvals closely."
-  //     : "No unusual activity detected.";
   const [verifyId, setVerifyId] = useState("");
   const [verifyResult, setVerifyResult] = useState(null);
   const [selectedVisitor, setSelectedVisitor] = useState(null);
@@ -139,104 +123,61 @@ const Admindashboard = () => {
     return <Navigate to="/AdminLogin" replace />;
   }
 
+  const statBadge = (v) =>
+    v === "approved"
+      ? { background: "var(--ok-bg)", color: "var(--ok-fg)" }
+      : v === "rejected"
+        ? { background: "var(--bad-bg)", color: "var(--bad-fg)" }
+        : { background: "var(--warn-bg)", color: "var(--warn-fg)" };
+
+  const statCards = [
+    { label: "Pending Request", value: pendingRequests, Icon: MdOutlinePendingActions, chip: { background: "var(--warn-bg)", color: "var(--warn-fg)" } },
+    { label: "Total Visits", value: totalVisits, Icon: RiGroupFill, chip: { background: "var(--accent-soft)", color: "var(--accent)" } },
+    { label: "Approved", value: approvedCount, Icon: RiGroupFill, chip: { background: "var(--ok-bg)", color: "var(--ok-fg)" } },
+    { label: "Rejected", value: rejectedCount, Icon: RiGroupFill, chip: { background: "var(--bad-bg)", color: "var(--bad-fg)" } },
+    { label: "Today Visits", value: todayVisits, Icon: RiGroupFill, chip: { background: "var(--accent-soft)", color: "var(--accent)" } },
+  ];
+
   return (
-    <div>
+    <div className="min-h-screen">
       <Adminnavbar />
 
-      {/* //cards */}
-
-      <div className="card flex justify-between mx-[5%] mt-15 gap-3">
-        {/* //jo bhi user plan krega visit uski request idhr cnt hgi */}
-        <div className="bg-[var(--bg-color)] p-4 w-[16%] min-h-[110px] rounded-2xl shadow-sm hover:shadow-md transition flex items-center">
-          <MdOutlinePendingActions className="text-[220%] mr-2 opacity-80" />
-          <div>
-            <h1 className="text-sm font-medium">Pending Request</h1>
-            <p className="text-2xl font-bold mt-1">{pendingRequests}</p>
-          </div>
+      <div className="mx-auto max-w-[1280px] px-4 pb-12 sm:px-6" style={{ animation: "fadeUp .4s ease both" }}>
+        <div className="mb-6 mt-2">
+          <h1 className="font-display text-2xl font-extrabold tracking-tight sm:text-[28px]">Visitor dashboard</h1>
         </div>
 
-        <div className="bg-[var(--bg-color)] p-4 w-[16%] min-h-[110px] rounded-2xl   flex items-center">
-          <RiGroupFill className="text-[220%] mr-2 opacity-80" />
-          <div className="ml-2">
-            <h1 className="text-sm font-medium">Total Visits</h1>
-            <p className="text-2xl font-bold mt-1">{totalVisits}</p>
-          </div>
+        {/* stat cards */}
+        <div className="mb-7 grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
+          {statCards.map(({ label, value, Icon, chip }) => (
+            <div key={label} className="clay-sm rounded-[22px] p-4.5 transition duration-300 hover:-translate-y-1 hover:shadow-[var(--shadow-clay)]">
+              <div className="mb-3 flex items-center justify-between">
+                <span className="text-[12.5px] font-bold text-[var(--muted)]">{label}</span>
+                <span className="flex h-8 w-8 items-center justify-center rounded-xl text-base" style={chip}>
+                  <Icon />
+                </span>
+              </div>
+              <p className="font-display text-[28px] font-extrabold leading-none">{value}</p>
+            </div>
+          ))}
         </div>
 
-        <div className="bg-[var(--bg-color)] p-4 w-[16%] min-h-[110px] rounded-2xl shadow-sm hover:shadow-md transition flex items-center">
-          <RiGroupFill className="text-[220%] mr-2 opacity-80" />
-          <div className="ml-2">
-            <h1 className="text-sm font-medium">Approved</h1>
-            <p className="text-2xl font-bold mt-1">{approvedCount}</p>
-          </div>
-        </div>
+        {/* toolbar */}
+        <div className="mb-4 flex flex-wrap items-center gap-3">
+          <h1 className="font-display mr-auto text-lg font-extrabold">Visitors</h1>
 
-        <div className="bg-[var(--bg-color)] p-4 w-[16%] min-h-[110px] rounded-2xl shadow-sm hover:shadow-md transition flex items-center">
-          <RiGroupFill className="text-[220%] mr-2 opacity-80" />
-          <div className="ml-2">
-            <h1 className="text-sm font-medium">Rejected</h1>
-            <p className="text-2xl font-bold mt-1">{rejectedCount}</p>
-          </div>
-        </div>
-
-        <div className="bg-[var(--bg-color)] p-4 w-[16%] min-h-[110px] rounded-2xl shadow-sm hover:shadow-md transition flex items-center">
-          <RiGroupFill className="text-[220%] mr-2 opacity-80" />
-          <div className="ml-2">
-            <h1 className="text-sm font-medium">Today Visits</h1>
-            <p className="text-2xl font-bold mt-1">{todayVisits}</p>
-          </div>
-        </div>
-      </div>
-      {/* 
-      <div className="mx-[5%] mt-4 bg-white/90 border border-gray-200 rounded-2xl shadow-sm p-4">
-        <h2 className="text-lg font-semibold mb-3 text-gray-800">AI Visitor Analytics</h2>
-
-        <div className="grid grid-cols-3 gap-3">
-          <div className="bg-gradient-to-br from-blue-50 to-blue-100 p-3 rounded-xl border border-blue-100">
-            <p className="text-sm text-gray-600">Approval Rate</p>
-            <p className="text-xl font-bold mt-1">{approvalRate}%</p>
-          </div>
-
-          <div className="bg-gradient-to-br from-green-50 to-green-100 p-3 rounded-xl border border-green-100">
-            <p className="text-sm text-gray-600">Approved Visitors</p>
-            <p className="text-xl font-bold mt-1">{approvedCount}</p>
-          </div>
-
-          <div className="bg-gradient-to-br from-yellow-50 to-yellow-100 p-3 rounded-xl border border-yellow-100">
-            <p className="text-sm text-gray-600">Today's Visitors</p>
-            <p className="text-xl font-bold mt-1">{todayVisits}</p>
-          </div>
-        </div> */}
-
-      {/* <div className="mt-3 p-2.5 bg-gray-50 rounded-xl border text-sm">
-          <strong>AI Insight:</strong> {aiInsight}
-        </div>
-
-        <div className="mt-2 p-2.5 bg-red-50 rounded-xl border text-sm">
-          <strong>Risk Level:</strong> {riskLevel}
-        </div>
-
-        <div className="mt-2 p-2.5 bg-blue-50 rounded-xl border text-sm">
-          <strong>AI Recommendation:</strong> {aiRecommendation}
-        </div>
-      </div> */}
-
-      <div className="flex justify-between items-center mt-[5%] mx-[5%]">
-        <h1 className="text-[150%] font-bold">VISITORS</h1>
-
-        <div className="flex items-center gap-5">
           <input
             type="text"
             placeholder="Search by name..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="border p-2 w-[220px] rounded text-sm"
+            className="input-clay w-[190px] rounded-[13px] px-3.5 py-2.5 text-[13px]"
           />
 
           <select
             value={filter}
             onChange={(e) => setFilter(e.target.value)}
-            className=" appearance-none border p-2 rounded text-sm bg-white"
+            className="input-clay cursor-pointer appearance-none rounded-[13px] px-3.5 py-2.5 text-[13px] font-bold"
           >
             <option value="all">All</option>
             <option value="pending">Pending</option>
@@ -251,20 +192,20 @@ const Admindashboard = () => {
                 type="date"
                 value={fromDate}
                 onChange={(e) => setFromDate(e.target.value)}
-                className="border p-2 rounded text-sm"
+                className="input-clay rounded-[13px] px-3.5 py-2 text-[13px]"
               />
               <input
                 type="date"
                 value={toDate}
                 onChange={(e) => setToDate(e.target.value)}
-                className="border p-2 rounded text-sm"
+                className="input-clay rounded-[13px] px-3.5 py-2 text-[13px]"
               />
             </>
           )}
           <select
             value={sort}
             onChange={(e) => setSort(e.target.value)}
-            className=" appearance-none border p-2 rounded text-sm bg-white"
+            className="input-clay cursor-pointer appearance-none rounded-[13px] px-3.5 py-2.5 text-[13px] font-bold"
           >
             <option value="latest">Latest</option>
             <option value="oldest">Oldest</option>
@@ -274,257 +215,259 @@ const Admindashboard = () => {
             placeholder="Enter Pass ID"
             value={verifyId}
             onChange={(e) => setVerifyId(e.target.value)}
-            className="border p-2 w-[180px] rounded text-sm"
+            className="input-clay w-[150px] rounded-[13px] px-3.5 py-2.5 text-[13px]"
           />
 
           <button
             onClick={verifyPass}
-            className="px-3 py-2 bg-blue-200 text-blue-800 rounded text-sm"
+            className="btn-primary rounded-[13px] px-4.5 py-2.5 text-[13px]"
           >
             Verify
           </button>
         </div>
-      </div>
-      {verifyResult && (
-        <div
-          className={`mx-[5%] mt-2 p-3 rounded ${
-            verifyResult.type === "valid"
-              ? "bg-green-100 text-green-800"
-              : verifyResult.type === "not-approved"
-                ? "bg-yellow-100 text-yellow-800"
-                : verifyResult.type === "invalid"
-                  ? "bg-red-100 text-red-800"
-                  : "bg-gray-100 text-gray-600"
-          }`}
-        >
-          {verifyResult.type === "valid" && (
-            <div>
-              <p>
-                <strong>VALID ENTRY</strong>
-              </p>
-              <p>Name: {verifyResult.visitor.name}</p>
-              <p>Status: {verifyResult.visitor.status}</p>
-              <p>Email: {verifyResult.visitor.email}</p>
-              <p>Phone: {verifyResult.visitor.phone}</p>
-            </div>
-          )}
 
-          {verifyResult.type === "not-approved" && (
-            <div>
-              <p>
-                <strong>NOT APPROVED</strong>
-              </p>
-              <p>Name: {verifyResult.visitor.name}</p>
-              <p>Status: {verifyResult.visitor.status}</p>
-            </div>
-          )}
-
-          {verifyResult.type === "invalid" && <p>INVALID PASS</p>}
-        </div>
-      )}
-      {rejectVisitor && (
-        <div className="fixed top-0 right-0 h-full w-[360px] bg-white shadow-xl z-50 p-5 overflow-y-auto">
-          <button
-            onClick={() => {
-              setRejectVisitor(null);
-              setRejectMsg("");
+        {verifyResult && (
+          <div
+            className="mb-5 rounded-[18px] px-4.5 py-3.5 text-sm font-bold"
+            style={{
+              boxShadow: "var(--shadow-clay-sm)",
+              ...(verifyResult.type === "valid"
+                ? { background: "var(--ok-bg)", color: "var(--ok-fg)" }
+                : verifyResult.type === "not-approved"
+                  ? { background: "var(--warn-bg)", color: "var(--warn-fg)" }
+                  : verifyResult.type === "invalid"
+                    ? { background: "var(--bad-bg)", color: "var(--bad-fg)" }
+                    : { background: "var(--surface)", color: "var(--muted)" }),
+              animation: "fadeUp .25s ease both",
             }}
-            className="absolute top-3 right-3 text-gray-500"
           >
-            ✕
-          </button>
-
-          <h2 className="text-lg font-bold mb-4">Reject Visitor</h2>
-
-          <textarea
-            placeholder="Optional message..."
-            value={rejectMsg}
-            onChange={(e) => setRejectMsg(e.target.value)}
-            className="w-full border p-2 rounded mb-3"
-          />
-
-          <button
-            onClick={() => {
-              updateStatus(rejectVisitor._id, "rejected", rejectMsg);
-              setRejectVisitor(null);
-              setRejectMsg("");
-            }}
-            className="bg-red-200 px-3 py-2 rounded w-full"
-          >
-            Send & Reject
-          </button>
-        </div>
-      )}
-      {successMsg && (
-        <div className="fixed top-5 right-5 bg-green-200 text-green-800 px-4 py-2 rounded shadow-lg z-50">
-          {successMsg}
-        </div>
-      )}
-      <div className="mx-[5%]  my-[3%] w-[90%]  shadow-sm p-5 overflow-x-auto bg-white">
-        <table className="w-full  text-sm">
-          <thead>
-            <tr className="bg-gray-100 text-gray-700 text-xs uppercase tracking-wide">
-              <th className="p-2 border font-medium">Pass ID</th>
-              <th className="p-2 border font-medium">Name</th>
-              <th className="p-2 border font-medium">Email</th>
-              <th className="p-2 border font-medium">Phone</th>
-              <th className="p-2 border font-medium">To Meet</th>
-              <th className="p-2 border font-medium">Date</th>
-              <th className="p-2 border font-medium">Status</th>
-              <th className="p-2 border font-medium">Actions</th>
-            </tr>
-          </thead>
-
-          <tbody>
-            {sortedVisitors.length === 0 && (
-              <tr>
-                <td colSpan="8" className="text-center p-4 text-gray-500">
-                  No results found
-                </td>
-              </tr>
+            {verifyResult.type === "valid" && (
+              <div>
+                <p><strong>VALID ENTRY</strong></p>
+                <p className="font-semibold">Name: {verifyResult.visitor.name}</p>
+                <p className="font-semibold">Status: {verifyResult.visitor.status}</p>
+                <p className="font-semibold">Email: {verifyResult.visitor.email}</p>
+                <p className="font-semibold">Phone: {verifyResult.visitor.phone}</p>
+              </div>
             )}
-            {paginatedVisitors.map((v, i) => (
-              <tr key={i} className="text-center">
-                <td className="p-2 border">{v.passId}</td>
-                <td className="p-2 border relative">
-                  <span>{v.name || "-"}</span>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setSelectedVisitor(v);
-                    }}
-                    className="absolute top-1 right-1 text-xs bg-gray-200 rounded-full w-5 h-5 flex items-center justify-center"
-                    title="View details"
-                  >
-                    i
-                  </button>
-                </td>
-                <td className="p-2 border">{v.email || "-"}</td>
-                <td className="p-2 border">{v.phone || "-"}</td>
-                <td className="p-2 border">{v.toMeet || "-"}</td>
-                <td className="p-2 border">
-                  {v.date && /^\d{4}-\d{2}-\d{2}$/.test(v.date) ? v.date : "-"}
-                </td>
-                <td className="p-2 border">
-                <span className={
-  (v.status === "approved" ? "bg-green-200 text-green-800" :
-   v.status === "rejected" ? "bg-red-200 text-red-800" :
-   "bg-yellow-200 text-yellow-800") + " px-2 py-0.5 rounded text-xs"
-}>
-  {v.status || "pending"}
-</span>
-                </td>
-                <td className="p-2 border">
-                  <button
-                    onClick={() => {
-                      setVerifyId(v.passId);
-                      setTimeout(() => verifyPass(), 100);
-                    }}
-                   className="px-2 py-1 mr-2 rounded bg-blue-200 text-blue-800 text-xs"
-                  >
-                    Verify
-                  </button>
-                  <button
-                    onClick={() => updateStatus(v._id, "approved")}
-                    disabled={v.status === "approved"}
-                    className={`px-2 py-1 mr-2 rounded ${
-                      v.status === "approved"
-                        ? "bg-green-100 text-green-400 cursor-not-allowed"
-                        : "bg-green-200 text-green-800"
-                    }`}
-                  >
-                    Approve
-                  </button>
-                  <button
-                    onClick={() => setRejectVisitor(v)}
-                    disabled={v.status === "rejected"}
-                    className={`px-2 py-1 rounded ${
-                      v.status === "rejected"
-                        ? "bg-red-100 text-red-400 cursor-not-allowed"
-                        : "bg-red-200 text-red-800"
-                    }`}
-                  >
-                    Reject
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        <div className="flex justify-center gap-4 mt-4">
-          <button
-            onClick={() => setPage((prev) => Math.max(prev - 1, 1))}
-            disabled={page === 1}
-            className="px-3 py-1 border rounded disabled:opacity-50"
-          >
-            Prev
-          </button>
 
-          <span className="px-2 py-1 text-sm">
-            Page {page} of {totalPages || 1}
-          </span>
+            {verifyResult.type === "not-approved" && (
+              <div>
+                <p><strong>NOT APPROVED</strong></p>
+                <p className="font-semibold">Name: {verifyResult.visitor.name}</p>
+                <p className="font-semibold">Status: {verifyResult.visitor.status}</p>
+              </div>
+            )}
 
-          <button
-            onClick={() => setPage((prev) => Math.min(prev + 1, totalPages))}
-            disabled={page === totalPages}
-            className="px-3 py-1 border rounded disabled:opacity-50"
-          >
-            Next
-          </button>
-        </div>
-      </div>
-      {selectedVisitor && (
-        <div className="fixed top-0 right-0 h-full w-[360px] bg-white shadow-xl z-50 p-5 overflow-y-auto">
-          <button
-            onClick={() => setSelectedVisitor(null)}
-            className="absolute top-3 right-3 text-gray-500"
-          >
-            ✕
-          </button>
-
-          <h2 className="text-lg font-bold mb-4">Visitor Details</h2>
-
-          <div className="space-y-2 text-sm">
-            <p>
-              <strong>Name:</strong> {selectedVisitor.name || "-"}
-            </p>
-            <p>
-              <strong>Email:</strong> {selectedVisitor.email || "-"}
-            </p>
-            <p>
-              <strong>Phone:</strong> {selectedVisitor.phone || "-"}
-            </p>
-            <p>
-              <strong>Host:</strong> {selectedVisitor.toMeet || "-"}
-            </p>
-            <p>
-              <strong>Date:</strong> {selectedVisitor.date || "-"}
-            </p>
-            <p>
-              <strong>Time:</strong>{" "}
-              {selectedVisitor.time ||
-                (selectedVisitor.createdAt
-                  ? selectedVisitor.createdAt.split("T")[1]?.slice(0, 5)
-                  : "-")}
-            </p>
-            <p>
-              <strong>Status:</strong> {selectedVisitor.status || "pending"}
-            </p>
-            <p>
-              <strong>Pass ID:</strong> {selectedVisitor.passId || "-"}
-            </p>
+            {verifyResult.type === "invalid" && <p>INVALID PASS</p>}
           </div>
+        )}
 
-          <button
-            onClick={() =>
-              (window.location.href = `mailto:${selectedVisitor.email}`)
-            }
-            className="mt-4 w-full py-2 bg-blue-200 text-blue-800 rounded"
-          >
-            Send Email
-          </button>
+        {rejectVisitor && (
+          <div className="clay fixed right-0 top-0 z-50 h-full w-[360px] max-w-[92vw] overflow-y-auto rounded-l-[28px] p-6"
+            style={{ animation: "slideIn .25s ease both" }}>
+            <button
+              onClick={() => {
+                setRejectVisitor(null);
+                setRejectMsg("");
+              }}
+              className="btn-soft absolute right-4 top-4 h-9 w-9 rounded-xl text-sm"
+            >
+              ✕
+            </button>
+
+            <h2 className="font-display mb-4 mt-1 text-lg font-extrabold">Reject Visitor</h2>
+
+            <textarea
+              placeholder="Optional message..."
+              value={rejectMsg}
+              onChange={(e) => setRejectMsg(e.target.value)}
+              className="input-clay mb-3 w-full min-h-[110px] resize-y"
+            />
+
+            <button
+              onClick={() => {
+                updateStatus(rejectVisitor._id, "rejected", rejectMsg);
+                setRejectVisitor(null);
+                setRejectMsg("");
+              }}
+              className="w-full cursor-pointer rounded-2xl py-3 text-sm font-extrabold transition hover:-translate-y-0.5"
+              style={{ background: "var(--bad-bg)", color: "var(--bad-fg)", boxShadow: "var(--shadow-clay-sm)" }}
+            >
+              Send & Reject
+            </button>
+          </div>
+        )}
+
+        {successMsg && (
+          <div className="fixed right-5 top-5 z-50 rounded-2xl px-5 py-3 text-sm font-extrabold"
+            style={{ background: "var(--ok-bg)", color: "var(--ok-fg)", boxShadow: "var(--shadow-clay)", animation: "fadeUp .25s ease both" }}>
+            {successMsg}
+          </div>
+        )}
+
+        {/* table */}
+        <div className="clay overflow-x-auto rounded-[26px] p-5 sm:p-6">
+          <table className="w-full min-w-[860px] border-collapse text-sm">
+            <thead>
+              <tr>
+                <th className="th-clay">Pass ID</th>
+                <th className="th-clay">Name</th>
+                <th className="th-clay">Email</th>
+                <th className="th-clay">Phone</th>
+                <th className="th-clay">To Meet</th>
+                <th className="th-clay">Date</th>
+                <th className="th-clay">Status</th>
+                <th className="th-clay text-right">Actions</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              {sortedVisitors.length === 0 && (
+                <tr>
+                  <td colSpan="8" className="p-6 text-center text-[var(--muted)]">
+                    No results found
+                  </td>
+                </tr>
+              )}
+              {paginatedVisitors.map((v, i) => (
+                <tr key={i} className="transition hover:bg-[var(--surface)]">
+                  <td className="td-clay font-bold text-[var(--muted)]">{v.passId}</td>
+                  <td className="td-clay">
+                    <div className="flex items-center gap-2 font-extrabold">
+                      <span>{v.name || "-"}</span>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedVisitor(v);
+                        }}
+                        className="flex h-5 w-5 shrink-0 cursor-pointer items-center justify-center rounded-full text-[11px] font-bold"
+                        style={{ background: "var(--accent-soft)", color: "var(--accent)" }}
+                        title="View details"
+                      >
+                        i
+                      </button>
+                    </div>
+                  </td>
+                  <td className="td-clay text-[var(--muted)]">{v.email || "-"}</td>
+                  <td className="td-clay text-[var(--muted)]">{v.phone || "-"}</td>
+                  <td className="td-clay font-semibold">{v.toMeet || "-"}</td>
+                  <td className="td-clay text-[var(--muted)]">
+                    {v.date && /^\d{4}-\d{2}-\d{2}$/.test(v.date) ? v.date : "-"}
+                  </td>
+                  <td className="td-clay">
+                    <span
+                      className="rounded-full px-3 py-1 text-[11.5px] font-extrabold capitalize"
+                      style={statBadge(v.status || "pending")}
+                    >
+                      {v.status || "pending"}
+                    </span>
+                  </td>
+                  <td className="td-clay whitespace-nowrap text-right">
+                    <button
+                      onClick={() => {
+                        setVerifyId(v.passId);
+                        setTimeout(() => verifyPass(), 100);
+                      }}
+                      className="mr-1.5 cursor-pointer rounded-[11px] px-3 py-1.5 text-xs font-bold transition hover:opacity-80"
+                      style={{ background: "var(--accent-soft)", color: "var(--accent)" }}
+                    >
+                      Verify
+                    </button>
+                    <button
+                      onClick={() => updateStatus(v._id, "approved")}
+                      disabled={v.status === "approved"}
+                      className={`mr-1.5 rounded-[11px] px-3 py-1.5 text-xs font-bold transition ${
+                        v.status === "approved"
+                          ? "cursor-not-allowed opacity-40"
+                          : "cursor-pointer hover:opacity-80"
+                      }`}
+                      style={{ background: "var(--ok-bg)", color: "var(--ok-fg)" }}
+                    >
+                      Approve
+                    </button>
+                    <button
+                      onClick={() => setRejectVisitor(v)}
+                      disabled={v.status === "rejected"}
+                      className={`rounded-[11px] px-3 py-1.5 text-xs font-bold transition ${
+                        v.status === "rejected"
+                          ? "cursor-not-allowed opacity-40"
+                          : "cursor-pointer hover:opacity-80"
+                      }`}
+                      style={{ background: "var(--bad-bg)", color: "var(--bad-fg)" }}
+                    >
+                      Reject
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <div className="mt-4 flex items-center justify-center gap-4">
+            <button
+              onClick={() => setPage((prev) => Math.max(prev - 1, 1))}
+              disabled={page === 1}
+              className="btn-soft rounded-xl px-4 py-1.5 text-[13px]"
+            >
+              Prev
+            </button>
+
+            <span className="px-2 py-1 text-sm font-extrabold">
+              Page {page} of {totalPages || 1}
+            </span>
+
+            <button
+              onClick={() => setPage((prev) => Math.min(prev + 1, totalPages))}
+              disabled={page === totalPages}
+              className="btn-soft rounded-xl px-4 py-1.5 text-[13px]"
+            >
+              Next
+            </button>
+          </div>
         </div>
-      )}
+
+        {selectedVisitor && (
+          <div className="clay fixed right-0 top-0 z-50 h-full w-[360px] max-w-[92vw] overflow-y-auto rounded-l-[28px] p-6"
+            style={{ animation: "slideIn .25s ease both" }}>
+            <button
+              onClick={() => setSelectedVisitor(null)}
+              className="btn-soft absolute right-4 top-4 h-9 w-9 rounded-xl text-sm"
+            >
+              ✕
+            </button>
+
+            <h2 className="font-display mb-5 mt-1 text-lg font-extrabold">Visitor Details</h2>
+
+            <div className="grid grid-cols-2 gap-2.5 text-sm">
+              {[
+                ["Name", selectedVisitor.name || "-"],
+                ["Email", selectedVisitor.email || "-"],
+                ["Phone", selectedVisitor.phone || "-"],
+                ["Host", selectedVisitor.toMeet || "-"],
+                ["Date", selectedVisitor.date || "-"],
+                ["Time", selectedVisitor.time || (selectedVisitor.createdAt ? selectedVisitor.createdAt.split("T")[1]?.slice(0, 5) : "-")],
+                ["Status", selectedVisitor.status || "pending"],
+                ["Pass ID", selectedVisitor.passId || "-"],
+              ].map(([label, value]) => (
+                <div key={label} className="tile px-3 py-2.5" style={label === "Email" ? { gridColumn: "1 / -1" } : undefined}>
+                  <div className="text-[10.5px] font-extrabold uppercase tracking-wider text-[var(--muted)]">{label}</div>
+                  <div className="mt-0.5 break-words font-extrabold capitalize">{value}</div>
+                </div>
+              ))}
+            </div>
+
+            <button
+              onClick={() =>
+                (window.location.href = `mailto:${selectedVisitor.email}`)
+              }
+              className="mt-5 w-full cursor-pointer rounded-2xl py-3 text-sm font-extrabold transition hover:-translate-y-0.5"
+              style={{ background: "var(--accent-soft)", color: "var(--accent)", boxShadow: "var(--shadow-clay-sm)" }}
+            >
+              Send Email
+            </button>
+          </div>
+        )}
+      </div>
     </div>
   );
 };
