@@ -8,7 +8,7 @@ router.post("/login", async (req, res) => {
   const adminPassword="1234";
   try {
     let { email, password } = req.body;
-    console.log("admin api hot hui");
+    console.log("admin api hit successfully");
 
     // clean input
     email = email?.trim().toLowerCase();

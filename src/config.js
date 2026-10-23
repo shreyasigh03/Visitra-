@@ -1,5 +1,6 @@
 // Reads VITE_API_URL from environment (set in .env locally, or in your
 // hosting platform's dashboard for production). Falls back to localhost
 // for local development.
-//export const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5001";
-export const API_BASE_URL = import.meta.env.VITE_API_URL || "https://visitra.vercel.app";
+export const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5001";
+// export const API_BASE_URL = "https://visitra.vercel.app";
+

@@ -1,5 +1,5 @@
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Response
 from pydantic import BaseModel , Field, ConfigDict
 from insightface.app import FaceAnalysis
 from anti_spoof import check_liveness
@@ -33,15 +33,6 @@ def generate_embedding(data: ImageData):
             "message": "Image not found"
         }
     
-    # ---------- Anti Spoof Check ----------
-    is_real = check_liveness(image)
-
-    if not is_real:
-       return {
-           "success": False,
-            "message": "Fake face detected. Please use a live face."
-    }
-
     faces = face_app.get(image)
 
     if len(faces) == 0:
@@ -49,6 +40,15 @@ def generate_embedding(data: ImageData):
             "success": False,
             "message": "No face detected in the uploaded image. Please upload and register an image with a clearly visible face."
         }
+
+    # ---------- Anti Spoof Check ----------
+    is_real = check_liveness(image)
+
+    if not is_real:
+       return {
+           "success": False,
+            "message": "The camera check could not confirm a live face. Face the camera directly in good lighting and capture again."
+    }
 
     embedding = faces[0].embedding.tolist()
 
@@ -115,4 +115,8 @@ def compare_embeding(data: CompareAllRequest):
 def home():
     return {"message": "AI Service Running"}
 
+
+@app.get("/favicon.ico", include_in_schema=False)
+def favicon():
+    return Response(status_code=204)
 

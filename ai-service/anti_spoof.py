@@ -24,11 +24,20 @@ predictor = AntiSpoofPredict(0)
 image_cropper = CropImage()
 
 def check_liveness(image):
+    if image is None or image.size == 0:
+        return False
+
+    model_names = sorted(
+        name for name in os.listdir(model_dir) if name.endswith(".pth")
+    )
+    if not model_names:
+        raise RuntimeError(f"No anti-spoof model weights found in {model_dir}")
+
     prediction = np.zeros((1, 3))
 
     image_bbox = predictor.get_bbox(image)
 
-    for model_name in os.listdir(model_dir):
+    for model_name in model_names:
         h_input, w_input, model_type, scale = parse_model_name(model_name)
 
         param = {
@@ -37,7 +46,9 @@ def check_liveness(image):
             "scale": scale,
             "out_w": w_input,
             "out_h": h_input,
-            "crop": True,
+            # The upstream Silent-Face example uses the full image for models
+            # whose filename has no scale and crops for scaled models.
+            "crop": scale is not None,
         }
 
         img = image_cropper.crop(**param)
@@ -54,8 +65,6 @@ def check_liveness(image):
     label = np.argmax(prediction)
     score = prediction[0][label]
 
-    print("Prediction:", prediction)
-    print("Label:", label)
-    print("Score:", score)
+    print("Anti-spoof prediction:", prediction, "label:", label, "score:", score)
 
     return label == 1

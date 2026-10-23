@@ -27,7 +27,11 @@ const VisitorRegsiterationPg = () => {
   const navigate = useNavigate();
 
   async function capturePhoto() {
-    const imageSrc = webcamRef.current.getScreenshot();
+    const imageSrc = webcamRef.current?.getScreenshot();
+    if (!imageSrc) {
+      alert("Camera is not ready yet. Allow camera access and try again.");
+      return;
+    }
     setPreview(imageSrc);
 
     const blob = await fetch(imageSrc).then((res) => res.blob());
@@ -88,11 +92,16 @@ const VisitorRegsiterationPg = () => {
         body: formData,
       });
 
+      const contentType = res.headers.get("content-type") || "";
+      if (!contentType.includes("application/json")) {
+        throw new Error(`Expected JSON from ${API_BASE_URL}, got ${res.status} ${res.statusText}`);
+      }
+
       const data = await res.json();
       console.log(data.status, data.message);
 
       if (!res.ok) {
-        alert(data.message);
+        alert(data.message || data.error || "Error submitting form");
         return;
       }
 
@@ -251,6 +260,12 @@ const VisitorRegsiterationPg = () => {
               <Webcam
                 ref={webcamRef}
                 screenshotFormat="image/jpeg"
+                videoConstraints={{
+                  width: { ideal: 480 },
+                  height: { ideal: 640 },
+                  aspectRatio: { ideal: 0.75 },
+                  facingMode: "user",
+                }}
                 className="w-full"
               />
               <div className="pointer-events-none absolute inset-3.5 rounded-[14px] border-[1.5px] border-white/10" />
@@ -263,6 +278,9 @@ const VisitorRegsiterationPg = () => {
             >
               Capture Photo
             </button>
+            <p className="mt-2 text-xs text-[var(--muted)]">
+              Face the camera in good lighting. Use a live camera image, with only your face in frame.
+            </p>
 
             {preview && (
               <div className="mt-4 flex items-center gap-3">
