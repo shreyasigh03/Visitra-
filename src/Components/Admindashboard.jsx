@@ -1,10 +1,30 @@
-import { useEffect, useState } from "react";
+import { useEffect,useMemo , useState } from "react";
 import { Navigate } from "react-router-dom";
 import React from "react";
 import { MdOutlinePendingActions } from "react-icons/md";
 import Adminnavbar from "./Adminnavbar";
 import { RiGroupFill } from "react-icons/ri";
 import { API_BASE_URL } from "../config";
+
+
+// GRAPH CHANGE: Chart components for visitor analytics
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Cell,
+  Legend,
+  Pie,
+  PieChart,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
+
+
+
+
 
 //deploy krne ke lie api)uri add krdia h local host hta dia hai
 const Admindashboard = () => {
@@ -24,6 +44,74 @@ const Admindashboard = () => {
   const todayVisits = visitors.filter((v) =>
     (v.date || "").startsWith(todayDate),
   ).length;
+
+
+
+
+
+
+
+  // GRAPH CHANGE: Prepare visitor-purpose data for the donut chart
+const purposeData = useMemo(() => {
+  const purposeCounts = {};
+
+  visitors.forEach((visitor) => {
+    const purpose =
+      visitor.purpose ||
+      visitor.visitPurpose ||
+      visitor.reason ||
+      "Other";
+
+    purposeCounts[purpose] = (purposeCounts[purpose] || 0) + 1;
+  });
+
+  return Object.entries(purposeCounts).map(([name, value]) => ({
+    name,
+    value,
+  }));
+}, [visitors]);
+
+// GRAPH CHANGE: Prepare visitor data for the weekly bar chart
+const weeklyData = useMemo(() => {
+  const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+  const counts = days.reduce((result, day) => {
+    result[day] = 0;
+    return result;
+  }, {});
+
+  visitors.forEach((visitor) => {
+    const visitorDate = visitor.date || visitor.createdAt;
+
+    if (!visitorDate) return;
+
+    const date = new Date(visitorDate);
+
+    if (!Number.isNaN(date.getTime())) {
+      counts[days[date.getDay()]] += 1;
+    }
+  });
+
+  return days.slice(1).concat(days[0]).map((day) => ({
+    day,
+    visitors: counts[day],
+  }));
+}, [visitors]);
+
+// GRAPH CHANGE: Colors used by the donut chart
+const chartColors = [
+  "#314ca3",
+  "#6485d8",
+  "#f2d36b",
+  "#a9b5d6",
+  "#79b6c9",
+];
+
+
+
+
+
+
 
   const [verifyId, setVerifyId] = useState("");
   const [verifyResult, setVerifyResult] = useState(null);
@@ -161,6 +249,94 @@ const Admindashboard = () => {
             </div>
           ))}
         </div>
+
+
+
+
+
+
+
+
+      {/* GRAPH CHANGE: Visitor analytics charts */}
+<div className="mb-7 grid grid-cols-1 gap-5 lg:grid-cols-2">
+  {/* GRAPH CHANGE: Visitors by purpose donut chart */}
+  <div className="clay rounded-[26px] p-5 sm:p-6">
+    <h2 className="mb-3 font-display text-lg font-extrabold">
+      Visitors by Purpose
+    </h2>
+
+    {purposeData.length === 0 ? (
+      <div className="flex h-[250px] items-center justify-center text-sm text-[var(--muted)]">
+        No visitor data available
+      </div>
+    ) : (
+      <ResponsiveContainer width="100%" height={250}>
+        <PieChart>
+          <Pie
+            data={purposeData}
+            dataKey="value"
+            nameKey="name"
+            cx="38%"
+            cy="50%"
+            innerRadius={55}
+            outerRadius={85}
+            paddingAngle={3}
+          >
+            {purposeData.map((entry, index) => (
+              <Cell
+                key={entry.name}
+                fill={chartColors[index % chartColors.length]}
+              />
+            ))}
+          </Pie>
+
+          <Tooltip />
+          <Legend
+            layout="vertical"
+            verticalAlign="middle"
+            align="right"
+          />
+        </PieChart>
+      </ResponsiveContainer>
+    )}
+  </div>
+
+  {/* GRAPH CHANGE: Weekly visitor trend bar chart */}
+  <div className="clay rounded-[26px] p-5 sm:p-6">
+    <h2 className="mb-3 font-display text-lg font-extrabold">
+      Weekly Visitor Trend
+    </h2>
+
+    <ResponsiveContainer width="100%" height={250}>
+      <BarChart data={weeklyData}>
+        <CartesianGrid
+          strokeDasharray="3 3"
+          vertical={false}
+          stroke="var(--border)"
+        />
+
+        <XAxis dataKey="day" />
+        <YAxis allowDecimals={false} />
+        <Tooltip />
+
+        <Bar
+          dataKey="visitors"
+          name="Visitors"
+          fill="var(--accent)"
+          radius={[6, 6, 0, 0]}
+        />
+      </BarChart>
+    </ResponsiveContainer>
+  </div>
+</div>
+
+
+
+
+
+
+
+
 
         {/* toolbar */}
         <div className="mb-4 flex flex-wrap items-center gap-3">

@@ -82,21 +82,46 @@ const VisitorRegsiterationPg = () => {
     formData.append("passId", passId);
 
     try {
-      const res = await fetch(`${API_BASE_URL}/api/visitor/register`, {
-        method: "POST",
+      // const res = await fetch(`${API_BASE_URL}/api/visitor/register`, {
+      //   method: "POST",
 
+      //   body: formData,
+      // });
+ //changes
+      const API_URL = import.meta.env.VITE_API_URL;
+
+      const res = await fetch(`${API_URL}/api/visitor/register`, {
+        method: "POST",
         body: formData,
       });
 
-      const data = await res.json();
-      console.log(data.status, data.message);
+      // const data = await res.json();
+      // console.log(
+      //   "visitor register krte time error",
+      //   data.status,
+      //   data.message,
+      // );
 
-      if (!res.ok) {
-        alert(data.message);
-        return;
-      }
+      // if (!res.ok) {
+      //   alert("visitor register krte time error", data.message);
+      //   return;
+      // }
 
-      console.log(data.message);
+      const contentType = res.headers.get("content-type") || "";
+
+const data = contentType.includes("application/json")
+  ? await res.json()
+  : await res.text();
+
+if (!res.ok) {
+  throw new Error(
+    typeof data === "string"
+      ? data
+      : data.message || "Visitor registration failed"
+  );
+}
+
+      console.log("visitor register krte time error ", data.message);
 
       const endTime = Date.now() + 10000;
       localStorage.setItem("endTime", endTime);
@@ -108,19 +133,25 @@ const VisitorRegsiterationPg = () => {
     }
   }
 
-  const labelClass = "mb-1.5 block text-[13px] font-bold tracking-wide text-[var(--muted)]";
-  const iconClass = "pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-sm text-[var(--muted)]";
+  const labelClass =
+    "mb-1.5 block text-[13px] font-bold tracking-wide text-[var(--muted)]";
+  const iconClass =
+    "pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-sm text-[var(--muted)]";
 
   return (
     <div className="min-h-screen">
       <Navbar />
-      <div className="mx-auto max-w-[1060px] px-4 pb-16 pt-6 sm:pt-10" style={{ animation: "fadeUp .5s ease both" }}>
+      <div
+        className="mx-auto max-w-[1060px] px-4 pb-16 pt-6 sm:pt-10"
+        style={{ animation: "fadeUp .5s ease both" }}
+      >
         <div className="mb-8 text-center">
           <h1 className="font-display mb-2 text-[26px] font-extrabold tracking-tight sm:text-[34px]">
             Visitor registration
           </h1>
           <p className="text-[15px] text-[var(--muted)]">
-            Tell us who you are and who you're visiting — it takes under a minute.
+            Tell us who you are and who you're visiting — it takes under a
+            minute.
           </p>
         </div>
 
@@ -132,7 +163,9 @@ const VisitorRegsiterationPg = () => {
           <div className="clay rounded-[28px] p-5 sm:p-8">
             <div className="grid gap-4.5 sm:grid-cols-2">
               <div>
-                <label className={labelClass} htmlFor="">Name</label>
+                <label className={labelClass} htmlFor="">
+                  Name
+                </label>
                 <div className="relative w-full">
                   <IoMdPerson className={iconClass} />
                   <input
@@ -148,7 +181,9 @@ const VisitorRegsiterationPg = () => {
               </div>
 
               <div>
-                <label className={labelClass} htmlFor="">Email</label>
+                <label className={labelClass} htmlFor="">
+                  Email
+                </label>
                 <div className="relative w-full">
                   <MdEmail className={iconClass} />
                   <input
@@ -164,7 +199,9 @@ const VisitorRegsiterationPg = () => {
               </div>
 
               <div>
-                <label className={labelClass} htmlFor="">Phone Number</label>
+                <label className={labelClass} htmlFor="">
+                  Phone Number
+                </label>
                 <div className="relative w-full">
                   <FaPhoneFlip className={iconClass} />
                   <input
@@ -180,7 +217,9 @@ const VisitorRegsiterationPg = () => {
               </div>
 
               <div>
-                <label className={labelClass} htmlFor="">Reason</label>
+                <label className={labelClass} htmlFor="">
+                  Reason
+                </label>
                 <div className="relative w-full">
                   <IoIosArrowDown className={iconClass} />
                   <select
@@ -201,7 +240,9 @@ const VisitorRegsiterationPg = () => {
               </div>
 
               <div>
-                <label className={labelClass} htmlFor="">Date</label>
+                <label className={labelClass} htmlFor="">
+                  Date
+                </label>
                 <input
                   type="date"
                   name="Date of Visit"
@@ -214,7 +255,9 @@ const VisitorRegsiterationPg = () => {
               </div>
 
               <div>
-                <label className={labelClass} htmlFor="">Host Name</label>
+                <label className={labelClass} htmlFor="">
+                  Host Name
+                </label>
                 <div className="relative w-full">
                   <FaUserGroup className={iconClass} />
                   <input
@@ -234,20 +277,31 @@ const VisitorRegsiterationPg = () => {
               Continue to OTP verification
             </button>
             <p className="mt-3.5 text-center text-[12.5px] text-[var(--muted)]">
-              You'll receive a one-time password on your email to confirm your identity.
+              You'll receive a one-time password on your email to confirm your
+              identity.
             </p>
           </div>
 
           <div className="clay rounded-[28px] p-5 sm:p-7">
             <div className="mb-3.5 flex items-center justify-between">
-              <span className="font-display text-[15px] font-bold">Profile Photo</span>
-              <span className="rounded-full px-2.5 py-1 text-[11px] font-extrabold tracking-widest"
-                style={{ background: "var(--accent-soft)", color: "var(--accent)" }}>
+              <span className="font-display text-[15px] font-bold">
+                Profile Photo
+              </span>
+              <span
+                className="rounded-full px-2.5 py-1 text-[11px] font-extrabold tracking-widest"
+                style={{
+                  background: "var(--accent-soft)",
+                  color: "var(--accent)",
+                }}
+              >
                 REQUIRED
               </span>
             </div>
 
-            <div className="relative overflow-hidden rounded-[20px] bg-[#141727]" style={{ boxShadow: "var(--shadow-clay-sm)" }}>
+            <div
+              className="relative overflow-hidden rounded-[20px] bg-[#141727]"
+              style={{ boxShadow: "var(--shadow-clay-sm)" }}
+            >
               <Webcam
                 ref={webcamRef}
                 screenshotFormat="image/jpeg"
@@ -272,15 +326,18 @@ const VisitorRegsiterationPg = () => {
                   className="h-20 w-20 rounded-2xl object-cover"
                   style={{ boxShadow: "var(--shadow-clay-sm)" }}
                 />
-                <span className="text-[13px] font-semibold" style={{ color: "var(--ok-fg)" }}>
+                <span
+                  className="text-[13px] font-semibold"
+                  style={{ color: "var(--ok-fg)" }}
+                >
                   Photo captured ✓
                 </span>
               </div>
             )}
 
             <p className="mt-3.5 text-[12.5px] leading-relaxed text-[var(--muted)]">
-              Your photo is used once for face-verified entry at the gate, then stored securely
-              with your visit record.
+              Your photo is used once for face-verified entry at the gate, then
+              stored securely with your visit record.
             </p>
           </div>
         </form>

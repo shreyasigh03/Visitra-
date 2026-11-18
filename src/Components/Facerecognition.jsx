@@ -55,14 +55,12 @@ const Facerecognition = () => {
         body: formData,
       });
 
-      if (!response.ok) throw new Error("Face verification request failed");
-
       const data = await response.json();
 
       setMessage(data.message ?? "");
       setSimilarity(data.similarity ?? null);
       setVisitor(data.visitor ?? null);
-      setStatus(data.success ? "granted" : "denied");
+      setStatus(response.ok && data.success ? "granted" : "denied");
     } catch (err) {
       console.error("Error while verifying face:", err);
       setError("Something went wrong while verifying. Please try again.");
@@ -82,7 +80,7 @@ const Facerecognition = () => {
             Face-verified entry
           </h1>
           <p className="mt-1.5 text-[15px] text-[var(--muted)]">
-            Position your face in the frame and capture to verify your entry pass.
+            Make sure only one person is in the frame, then capture to verify the entry pass.
           </p>
         </header>
 
@@ -198,7 +196,7 @@ const Facerecognition = () => {
                     </dl>
                   ) : (
                     <p className="flex-1 self-center text-sm text-[var(--muted)]">
-                      No matching visitor record found.
+                      No visitor details are available for this capture.
                     </p>
                   )}
                 </div>

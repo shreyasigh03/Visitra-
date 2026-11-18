@@ -33,6 +33,20 @@ def generate_embedding(data: ImageData):
             "message": "Image not found"
         }
     
+    faces = face_app.get(image)
+
+    if len(faces) == 0:
+        return {
+            "success": False,
+            "message": "No face detected in the uploaded image. Please upload and register an image with a clearly visible face."
+        }
+
+    if len(faces) > 1:
+        return {
+            "success": False,
+            "message": "Multiple faces detected. Please ensure only one person is in the frame."
+        }
+
     # ---------- Anti Spoof Check ----------
     is_real = check_liveness(image)
 
@@ -41,14 +55,6 @@ def generate_embedding(data: ImageData):
            "success": False,
             "message": "Fake face detected. Please use a live face."
     }
-
-    faces = face_app.get(image)
-
-    if len(faces) == 0:
-        return {
-            "success": False,
-            "message": "No face detected in the uploaded image. Please upload and register an image with a clearly visible face."
-        }
 
     embedding = faces[0].embedding.tolist()
 
@@ -114,5 +120,4 @@ def compare_embeding(data: CompareAllRequest):
 @app.get("/")
 def home():
     return {"message": "AI Service Running"}
-
 
