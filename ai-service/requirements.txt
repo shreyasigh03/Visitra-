@@ -1,0 +1,10 @@
+fastapi==0.143.0
+uvicorn==0.54.0
+insightface==2.1
+onnxruntime==1.31.0
+opencv-python==4.14.0.94
+numpy==2.4.6
+torch==2.14.1
+torchvision==0.29.1
+easydict==1.13
+pillow==12.3.0

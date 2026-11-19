@@ -27,7 +27,11 @@ const VisitorRegsiterationPg = () => {
   const navigate = useNavigate();
 
   async function capturePhoto() {
-    const imageSrc = webcamRef.current.getScreenshot();
+    const imageSrc = webcamRef.current?.getScreenshot();
+    if (!imageSrc) {
+      alert("Camera is not ready yet. Allow camera access and try again.");
+      return;
+    }
     setPreview(imageSrc);
 
     const blob = await fetch(imageSrc).then((res) => res.blob());
@@ -88,40 +92,26 @@ const VisitorRegsiterationPg = () => {
       //   body: formData,
       // });
  //changes
-      const API_URL = import.meta.env.VITE_API_URL;
-
-      const res = await fetch(`${API_URL}/api/visitor/register`, {
+      const res = await fetch(`${API_BASE_URL}/api/visitor/register`, {
         method: "POST",
         body: formData,
       });
 
-      // const data = await res.json();
-      // console.log(
-      //   "visitor register krte time error",
-      //   data.status,
-      //   data.message,
-      // );
-
-      // if (!res.ok) {
-      //   alert("visitor register krte time error", data.message);
-      //   return;
-      // }
-
       const contentType = res.headers.get("content-type") || "";
+      const data = contentType.includes("application/json")
+        ? await res.json()
+        : await res.text();
 
-const data = contentType.includes("application/json")
-  ? await res.json()
-  : await res.text();
+      if (!res.ok) {
+        const message =
+          typeof data === "string"
+            ? data
+            : data.message || data.error || "Error submitting form";
+        alert(message);
+        return;
+      }
 
-if (!res.ok) {
-  throw new Error(
-    typeof data === "string"
-      ? data
-      : data.message || "Visitor registration failed"
-  );
-}
-
-      console.log("visitor register krte time error ", data.message);
+      console.log(typeof data === "string" ? data : data.message);
 
       const endTime = Date.now() + 10000;
       localStorage.setItem("endTime", endTime);
@@ -305,6 +295,12 @@ if (!res.ok) {
               <Webcam
                 ref={webcamRef}
                 screenshotFormat="image/jpeg"
+                videoConstraints={{
+                  width: { ideal: 480 },
+                  height: { ideal: 640 },
+                  aspectRatio: { ideal: 0.75 },
+                  facingMode: "user",
+                }}
                 className="w-full"
               />
               <div className="pointer-events-none absolute inset-3.5 rounded-[14px] border-[1.5px] border-white/10" />
@@ -317,6 +313,9 @@ if (!res.ok) {
             >
               Capture Photo
             </button>
+            <p className="mt-2 text-xs text-[var(--muted)]">
+              Face the camera in good lighting. Use a live camera image, with only your face in frame.
+            </p>
 
             {preview && (
               <div className="mt-4 flex items-center gap-3">
