@@ -15,11 +15,25 @@ mongoose.set("bufferCommands", false);
 mongoose.connection.on("disconnected", () => console.warn("[db] MongoDB disconnected"));
 mongoose.connection.on("reconnected", () => console.log("[db] MongoDB reconnected"));
 
+let connecting = null;
+
+// Connects once, however many requests ask at the same time.
+function connectOnce() {
+  connecting ??= connect().finally(() => {
+    connecting = null;
+  });
+  return connecting;
+}
+
+async function connect() {
+  await mongoose.connect(config.mongoUri, { serverSelectionTimeoutMS: 10_000 });
+  console.log("[db] MongoDB connected");
+  await seedOrganizations().catch((err) => console.error("[db] organizations:", err.message));
+}
+
 async function connectDB() {
   try {
-    await mongoose.connect(config.mongoUri, { serverSelectionTimeoutMS: 10_000 });
-    console.log("[db] MongoDB connected");
-    await seedOrganizations().catch((err) => console.error("[db] organizations:", err.message));
+    await connectOnce();
   } catch (err) {
     console.error(`[db] Could not connect to MongoDB: ${err.message}`);
     if (/whitelist|IP|ENOTFOUND|querySrv|ECONNREFUSED|timed out/i.test(err.message)) {
@@ -35,4 +49,4 @@ async function connectDB() {
 
 const isDbConnected = () => mongoose.connection.readyState === 1;
 
-module.exports = { connectDB, isDbConnected };
+module.exports = { connectDB, connectOnce, isDbConnected };

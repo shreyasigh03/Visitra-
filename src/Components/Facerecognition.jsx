@@ -55,7 +55,7 @@ const Facerecognition = () => {
         <header className="mb-8 text-center">
           <h1 className="font-display text-[26px] font-extrabold tracking-tight md:text-[34px]">Face-verified entry</h1>
           <p className="mt-1.5 text-[15px] text-[var(--muted)]">
-            Make sure only one person is in the frame, then capture to verify the entry pass.
+            Tap the button and look straight at the camera. One person at a time.
           </p>
         </header>
         <ServiceBanner />
@@ -63,7 +63,7 @@ const Facerecognition = () => {
         <div className="grid grid-cols-1 items-start gap-6 md:grid-cols-2">
           <section className="clay min-w-0 rounded-[28px] p-5 sm:p-7">
             <h2 className="font-display mb-4 text-[15px] font-extrabold">Camera</h2>
-            <CameraCapture label="Capture & verify" busyLabel="Verifying…" busy={loading} onCapture={verify} />
+            <CameraCapture label="Scan my face" busyLabel="Verifying…" busy={loading} onCapture={verify} />
           </section>
 
           <section className="clay min-w-0 rounded-[28px] p-5 sm:p-7" aria-live="polite">

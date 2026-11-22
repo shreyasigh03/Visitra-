@@ -1,8 +1,11 @@
 const multer = require("multer");
-const { isDbConnected } = require("../config/db");
+const config = require("../config/env");
+const { connectOnce, isDbConnected } = require("../config/db");
 
 // Reject API calls immediately while MongoDB is down instead of failing later.
-function requireDb(req, res, next) {
+async function requireDb(req, res, next) {
+  // Online, the first request arrives before the database is connected.
+  if (config.online && !isDbConnected()) await connectOnce().catch((err) => console.error("[db]", err.message));
   if (isDbConnected()) return next();
   res.status(503).json({
     message: "Database is not connected. Check the backend terminal (MongoDB Atlas IP access).",

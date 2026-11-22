@@ -1,7 +1,11 @@
 // Loads backend/.env once and fails fast with a readable message
 // when a required setting is missing.
 const path = require("path");
-require("dotenv").config({ path: path.resolve(__dirname, "..", ".env") });
+require("dotenv").config({ path: path.resolve(__dirname, "..", ".env"), quiet: true });
+
+// Vercel runs the backend online, without the face service, the Excel folder or photos.
+const online = Boolean(process.env.VERCEL);
+if (online) process.env.TZ = "Asia/Kolkata"; // its clock is UTC, but "today" is the campus day
 
 const REQUIRED = ["MONGO_URI", "JWT_SECRET", "ADMIN_EMAIL", "ADMIN_PASSWORD"];
 const OPTIONAL_WARN = ["EMAIL_USER", "EMAIL_PASS"];
@@ -31,6 +35,7 @@ function wholeNumber(key, fallback) {
 }
 
 module.exports = {
+  online,
   port: Number(process.env.PORT) || 5001,
   mongoUri: process.env.MONGO_URI,
   jwtSecret: process.env.JWT_SECRET,
@@ -57,5 +62,5 @@ module.exports = {
   autoCleanup: process.env.AUTO_CLEANUP === "true",
   // Comma-separated DNS servers used to resolve the Atlas SRV record.
   // Set DNS_SERVERS=system to use the machine's own DNS instead.
-  dnsServers: process.env.DNS_SERVERS || "8.8.8.8,8.8.4.4",
+  dnsServers: process.env.DNS_SERVERS || (online ? "system" : "8.8.8.8,8.8.4.4"),
 };

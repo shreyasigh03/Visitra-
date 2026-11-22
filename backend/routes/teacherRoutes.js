@@ -2,6 +2,7 @@ const express = require("express");
 const { isValidObjectId } = require("mongoose");
 const config = require("../config/env");
 const Teacher = require("../models/Teacher");
+const Activity = require("../models/Activity");
 const Visitor = require("../models/Visitor");
 const { requireTeacher, signTeacherToken } = require("../middleware/auth");
 const { hashInvite } = require("../services/teacherInvite");
@@ -67,6 +68,17 @@ router.get("/me", (req, res) => {
   res.json({ ...publicTeacher(req.teacher), pushKey: pushReady ? config.vapidPublicKey : "" });
 });
 
+// Answers given before the time was saved with the visit are in the activity history.
+async function addAnswerTimes(visitors) {
+  const missing = visitors.filter((v) => !v.answeredAt && v.status !== "verified");
+  if (!missing.length) return;
+  const history = await Activity.find({ visitorId: { $in: missing.map((v) => v._id) }, type: { $in: ["approved", "rejected", "rescheduled"] } })
+    .sort({ at: 1 })
+    .lean();
+  const last = new Map(history.map((a) => [String(a.visitorId), a.at]));
+  for (const v of missing) v.answeredAt = last.get(String(v._id));
+}
+
 router.get("/requests", async (req, res) => {
   // A request reaches the teacher only after the visitor confirms their email.
   const visitors = await Visitor.find({ teacherId: req.teacher._id, status: { $ne: "pending" }, clearedByTeacher: { $ne: true } })
@@ -74,6 +86,7 @@ router.get("/requests", async (req, res) => {
     .sort({ createdAt: -1 })
     .limit(500)
     .lean();
+  await addAnswerTimes(visitors);
   res.json(visitors);
 });
 

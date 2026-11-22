@@ -34,6 +34,11 @@ function byTime(group) {
   return (a, b) => key(a).localeCompare(key(b)) * (group === "past" ? -1 : 1);
 }
 
+function answerLabel(v) {
+  if (v.status === "rejected") return "Rejected on";
+  return v.rescheduled ? "Rescheduled on" : "Approved on";
+}
+
 async function logout() {
   await turnOffPush().catch(() => {});
   clearToken("teacher");
@@ -105,6 +110,7 @@ const RequestCard = ({ request: v, group, highlighted, busy, onApprove, onReject
           ...(groupSize(v) > 1 ? [["Group", `${groupSize(v)} people, with ${v.groupMembers.join(", ")}`]] : []),
           ["Phone", v.phone],
           ["Registered", formatTime(v.createdAt)],
+          ...(v.answeredAt && v.status !== "verified" ? [[answerLabel(v), formatTime(v.answeredAt)]] : []),
           ...(v.entryTime ? [["Entry", formatTime(v.entryTime)], ["Exit", formatTime(v.exitTime)]] : []),
         ].map(([label, value]) => (
           <div key={label} className="min-w-0">

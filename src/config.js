@@ -1,4 +1,4 @@
-// Set VITE_API_URL in .env (local) or in the hosting dashboard (production).
+// VITE_API_URL comes from .env.production when the website is built for Vercel.
 const configuredUrl = import.meta.env.VITE_API_URL?.replace(/\/$/, "");
 
 // The phone demo build is served by the backend itself, so it calls its own address.

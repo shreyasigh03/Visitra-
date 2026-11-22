@@ -14,6 +14,7 @@ const visitorSchema = new mongoose.Schema(
     date: Date,
     visitTime: String, // "HH:mm", from a booked slot or a reschedule
     groupMembers: { type: [String], default: [] }, // people coming with this visitor
+    answeredAt: Date, // when the teacher or admin last approved, rejected or rescheduled
     rescheduled: Boolean,
     clearedByTeacher: Boolean, // hidden from the teacher's list; the record stays
     passId: { type: String, required: true, index: true },

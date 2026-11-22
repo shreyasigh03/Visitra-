@@ -6,9 +6,11 @@ const { logActivity } = require("./activity");
 const sendEmail = require("../utils/sendEmail");
 const { approvedEmail, rejectedEmail, rescheduledEmail } = require("../utils/emailTemplates");
 const { todayLocal } = require("../utils/dates");
+const { inBackground } = require("../utils/background");
 const HttpError = require("../utils/httpError");
 
-async function apply(teacher, visitorId, changes) {
+async function apply(teacher, visitorId, answer) {
+  const changes = { ...answer, answeredAt: new Date() };
   if (!isValidObjectId(visitorId)) throw new HttpError(404, "Request not found.");
   const mine = { _id: visitorId, teacherId: teacher._id };
   const update = (filter, set) =>
@@ -36,9 +38,10 @@ const log = (teacher, type, visitor, via, details = "") =>
 
 // The answer is saved even if this email fails.
 function tellVisitor(visitor, email) {
-  sendEmail({ to: visitor.email, ...email }).catch((err) =>
+  const sent = sendEmail({ to: visitor.email, ...email }).catch((err) =>
     console.error(`[email] decision email to visitor ${visitor._id} failed:`, err.message),
   );
+  inBackground(sent);
 }
 
 // `via` says where the answer came from, e.g. "by email".

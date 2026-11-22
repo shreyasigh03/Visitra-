@@ -2,7 +2,7 @@ const config = require("./config/env");
 const path = require("path");
 const express = require("express");
 const cors = require("cors");
-const { connectDB, isDbConnected } = require("./config/db");
+const { connectDB, connectOnce, isDbConnected } = require("./config/db");
 const { isFaceServiceUp } = require("./utils/faceService");
 const { requireDb, notFound, errorHandler } = require("./middleware/errors");
 const { startCleanupSchedule } = require("./services/retention");
@@ -18,7 +18,8 @@ const teacherRoutes = require("./routes/teacherRoutes");
 
 const app = express();
 
-app.set("trust proxy", "loopback"); // the phone tunnel connects from this computer
+// Vercel puts one proxy in front; the phone tunnel connects from this computer.
+app.set("trust proxy", config.online ? 1 : "loopback");
 app.use(cors());
 app.use(express.json({ limit: "1mb" }));
 app.use((req, res, next) => {
@@ -35,8 +36,9 @@ if (config.webDir) {
 // Used by the frontend to show a clear warning when something is down.
 app.get("/api/health", async (req, res) => {
   const faceService = await isFaceServiceUp();
+  if (config.online && !isDbConnected()) await connectOnce().catch((err) => console.error("[db]", err.message));
   const db = isDbConnected();
-  res.status(db && faceService ? 200 : 503).json({ db, faceService });
+  res.status(db && faceService ? 200 : 503).json({ db, faceService, online: config.online });
 });
 
 app.use("/api/org", requireDb, orgRoutes);
@@ -55,6 +57,7 @@ app.use(notFound);
 app.use(errorHandler);
 
 app.listen(config.port, () => {
+  if (config.online) return; // the computer on campus does the regular jobs
   console.log(`[server] Backend running on http://localhost:${config.port}`);
   connectDB();
   startCleanupSchedule();

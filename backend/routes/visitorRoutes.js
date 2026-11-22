@@ -10,7 +10,7 @@ const Teacher = require("../models/Teacher");
 const upload = require("../middleware/upload");
 const { requireAdmin } = require("../middleware/auth");
 const { registerLimiter, sendOtpLimiter, verifyOtpLimiter } = require("../middleware/rateLimits");
-const { generateEmbedding, findBestMatch } = require("../utils/faceService");
+const { checkFace, generateEmbedding, findBestMatch } = require("../utils/faceService");
 const { notifyTeacher } = require("../services/teacherNotify");
 const { localDay, todayLocal } = require("../utils/dates");
 const { confirmSlot, freeSlots, holdSlot, releaseSlots } = require("../services/slots");
@@ -19,6 +19,7 @@ const { findBlacklisted } = require("../services/blacklist");
 const { checkVisitor, isInside, isValidToday, logDenied, recordScan } = require("../services/gate");
 const sendEmail = require("../utils/sendEmail");
 const { otpEmail, approvedEmail, rejectedEmail } = require("../utils/emailTemplates");
+const { inBackground } = require("../utils/background");
 const HttpError = require("../utils/httpError");
 
 const router = express.Router();
@@ -127,6 +128,13 @@ async function bookSlot(body, data, visitorId) {
 
 // ---------- Public (visitor + gate) ----------
 
+// The camera asks this until a photo is good, so nothing is saved here.
+router.post("/check-face", upload.single("img"), async (req, res) => {
+  if (!req.file) throw new HttpError(400, "No image received from the camera.");
+  const { success, message } = await checkFace(req.file.buffer);
+  res.json({ success, message });
+});
+
 router.post("/register", registerLimiter, upload.single("photo"), async (req, res) => {
   const data = readRegistration(req.body, await readHost(req.body));
   if (!req.file) throw new HttpError(400, "Please capture a face photo before registering.");
@@ -228,7 +236,7 @@ router.post("/verify-otp", verifyOtpLimiter, async (req, res) => {
 
   // Only on the first verification, so the teacher is told once.
   if (visitor?.teacherId) {
-    notifyTeacher(visitor).catch((err) => console.error("[notify] teacher:", err.message));
+    inBackground(notifyTeacher(visitor).catch((err) => console.error("[notify] teacher:", err.message)));
   }
 });
 
@@ -291,9 +299,9 @@ router.put("/update/:id", requireAdmin, async (req, res) => {
   // Before a first approval, a recorded "entry" can only be a refused scan at the gate.
   let visitor = null;
   if (status === "approved") {
-    visitor = await update({ status: { $in: ["pending", "verified"] } }, { status, entryTime: null, exitTime: null });
+    visitor = await update({ status: { $in: ["pending", "verified"] } }, { status, answeredAt: new Date(), entryTime: null, exitTime: null });
   }
-  visitor ??= await update({}, { status });
+  visitor ??= await update({}, { status, answeredAt: new Date() });
   if (!visitor) throw new HttpError(404, "Visitor not found.");
   if (status === "rejected") await releaseSlots(visitor._id);
   logActivity({ actor: "Admin", type: status, visitor });
@@ -302,9 +310,10 @@ router.put("/update/:id", requireAdmin, async (req, res) => {
 
   // Email after responding so the dashboard doesn't wait on Gmail.
   const email = status === "approved" ? approvedEmail(visitor) : rejectedEmail(visitor, message);
-  sendEmail({ to: visitor.email, ...email }).catch((err) =>
+  const sent = sendEmail({ to: visitor.email, ...email }).catch((err) =>
     console.error(`[email] ${status} email to visitor ${visitor._id} failed:`, err.message),
   );
+  inBackground(sent);
 });
 
 router.get("/verify/:passId", requireAdmin, async (req, res) => {

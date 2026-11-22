@@ -8,7 +8,9 @@ function toHttpError(err) {
   if (err.code === "ECONNREFUSED" || err.code === "ENOTFOUND") {
     return new HttpError(
       503,
-      "Face recognition service is not running. Start it with `npm run dev:all` and wait until it says 'Application startup complete'.",
+      config.online
+        ? "The face photo works only on the campus computer for now."
+        : "Face recognition service is not running. Start it with `npm run dev:all` and wait until it says 'Application startup complete'.",
     );
   }
   if (err.code === "ECONNABORTED") {
@@ -24,6 +26,11 @@ async function call(path, body) {
   } catch (err) {
     throw toHttpError(err);
   }
+}
+
+// Tells if a photo can be used: { success, message }.
+function checkFace(imageBuffer) {
+  return call("/check-face", { image_base64: imageBuffer.toString("base64") });
 }
 
 // Returns { success, embedding } or { success: false, message }.
@@ -53,4 +60,4 @@ async function isFaceServiceUp() {
   }
 }
 
-module.exports = { decodeQr, generateEmbedding, findBestMatch, isFaceServiceUp };
+module.exports = { checkFace, decodeQr, generateEmbedding, findBestMatch, isFaceServiceUp };

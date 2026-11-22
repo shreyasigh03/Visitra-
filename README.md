@@ -2,6 +2,8 @@
 
 Visitor management with email OTP, face-verified entry, and an admin dashboard.
 
+**Live website: https://visitra-vms.vercel.app**
+
 | Part | Folder | Address |
 | --- | --- | --- |
 | Website (React + Vite) | `src/` | http://localhost:5173 |
@@ -75,18 +77,24 @@ Open http://localhost:5001/api/health. It shows which part is down.
 | Port is already in use (`npm run demo`) | Close the other terminal that is running VISITRA |
 | OTP email failed | Check `EMAIL_USER` and `EMAIL_PASS` |
 
-## Putting it online
+## Online
 
-Vercel hosts only the website. The backend and face service need a host that runs
-long-lived servers, such as Render, Railway, or a VPS.
+| Part | Where | Vercel project |
+| --- | --- | --- |
+| Website | https://visitra-vms.vercel.app | `visitra-vms` (folder `.`) |
+| Backend | https://visitra.vercel.app | `visitra` (folder `backend`) |
+| Face service | The campus computer only | None: it is too large for Vercel |
 
-1. Deploy `ai-service/`. Start command: `uvicorn main:app --host 0.0.0.0 --port $PORT`.
-   It loads PyTorch and InsightFace, so small free plans may run out of memory.
-   It has no login of its own, so keep it on the host's private network.
-2. Deploy `backend/` with the settings above. Set `AI_SERVICE_URL` to the face service address.
-   Give `backend/upload/` a persistent disk, or registration photos are lost on redeploy.
-3. Allow the backend host's IP in Atlas Network Access.
-4. In Vercel, set `VITE_API_URL` to the backend address and redeploy.
+Both projects update themselves when `main` changes. Logins, dashboards, approvals and emails
+work online. Registration and face scan need the face service, so they work only on the campus
+computer. That computer also reads teachers' email answers and does the clean-up.
+
+- The website finds the backend through `VITE_API_URL` in `.env.production`.
+- The backend's settings are in Vercel -> `visitra` -> Settings -> Environment Variables:
+  `MONGO_URI`, `JWT_SECRET`, `EMAIL_USER`, `EMAIL_PASS`, `ADMIN_EMAIL`, `ADMIN_PASSWORD`,
+  `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `WEB_URL`. Redeploy after a change.
+- MongoDB Atlas -> Network Access must allow `0.0.0.0/0`, because Vercel has no fixed IP address.
+- Use a strong `ADMIN_PASSWORD`: anyone can open the online login page.
 
 ## Checks
 

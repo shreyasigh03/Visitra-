@@ -277,20 +277,16 @@ const VisitorRegistration = () => {
 
             <CameraCapture
               className="btn-soft"
-              label={photo ? "Retake photo" : "Capture photo"}
+              label={photo ? "Retake photo" : "Take my photo"}
               onCapture={(shot) => {
                 setPhoto(shot);
                 setError("");
               }}
             />
-            <p className="mt-2 text-xs text-[var(--muted)]">
-              Face the camera in good lighting, with only your face in the frame.
-            </p>
-
             {photo && (
               <div className="mt-4 flex items-center gap-3">
                 <img src={photo.dataUrl} alt="Your captured photo" className="h-20 w-20 rounded-2xl object-cover" />
-                <span className="text-[13px] font-semibold" style={{ color: "var(--ok-fg)" }}>Photo captured ✓</span>
+                <span className="text-[13px] font-semibold" style={{ color: "var(--ok-fg)" }}>Photo is good ✓</span>
               </div>
             )}
 

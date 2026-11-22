@@ -47,6 +47,11 @@ async function findDue() {
   return { total: all.length, records, faces };
 }
 
+// The Excel folder and the photos are on the campus computer.
+function requireThisComputer() {
+  if (config.online) throw new HttpError(409, "Clean-up works only on the campus computer.");
+}
+
 async function previewCleanup() {
   const { total, records, faces } = await findDue();
   return {
@@ -75,6 +80,7 @@ function unchanged(v) {
 let running = false;
 
 async function runCleanup() {
+  requireThisComputer();
   if (running) throw new HttpError(409, "A clean-up is already running.");
   running = true;
   try {
