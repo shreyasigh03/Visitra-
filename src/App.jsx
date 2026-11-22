@@ -1,7 +1,6 @@
 import { lazy, Suspense } from "react";
 import { createBrowserRouter, Navigate, Outlet, RouterProvider } from "react-router-dom";
 import Landingpg from "./Components/Landingpg";
-import Feature from "./Components/Feature";
 import Howitworks from "./Components/Howitworks";
 import ProtectedRoute from "./Components/ProtectedRoute";
 
@@ -46,7 +45,7 @@ const router = createBrowserRouter([
     errorElement: <ErrorPage />,
     children: [
       { path: "/", element: <Landingpg /> },
-      { path: "/Feature", element: <Feature /> },
+      { path: "/Feature", element: <Navigate to="/Works" replace /> },
       { path: "/Works", element: <Howitworks /> },
       { path: "/Visitor", element: <VisitorRegistration /> },
       { path: "/otp", element: <Otpverification /> },

@@ -1,5 +1,5 @@
 import { useCallback, useState } from "react";
-import { MdEventAvailable, MdLogin, MdOutlinePendingActions } from "react-icons/md";
+import { MdDownload, MdEventAvailable, MdLogin, MdOutlinePendingActions } from "react-icons/md";
 import { RiCloseCircleFill, RiCheckboxCircleFill, RiGroupFill } from "react-icons/ri";
 import Adminnavbar from "./Adminnavbar";
 import DashboardCharts from "./DashboardCharts";
@@ -7,12 +7,14 @@ import Drawer from "./Drawer";
 import Notice from "./Notice";
 import Overstays from "./Overstays";
 import VisitorTable from "./VisitorTable";
+import { useFitRows } from "../hooks/useFitRows";
 import { useVisitors } from "../hooks/useVisitors";
 import { apiFetch } from "../lib/api";
 import { downloadCsv } from "../lib/csv";
 import { formatDay, formatTime, groupSize, isInside, needsAdmin, reasonLabel, STATUSES, todayLocal, visitDay } from "../lib/visitors";
 
-const PER_PAGE = 5;
+// On a laptop the page shows as many rows as fit, so it does not scroll.
+const ROWS = { rowHeight: 51, headHeight: 36, normal: 5, isOn: "(min-width: 1024px) and (min-height: 600px)" };
 const DEFAULT_VIEW = { filter: "all", search: "", sort: "latest", from: "", to: "", page: 1 };
 
 const TONES = {
@@ -49,6 +51,7 @@ function describePass(result) {
 
 const Admindashboard = () => {
   const { visitors, loading, error, refresh, updateStatus } = useVisitors();
+  const [tableRef, perPage] = useFitRows(ROWS);
   const [view, setView] = useState(DEFAULT_VIEW);
   const [passId, setPassId] = useState("");
   const [notice, setNotice] = useState(null);
@@ -61,20 +64,20 @@ const Admindashboard = () => {
   const change = (key) => (e) => setView((v) => ({ ...v, [key]: e.target.value, page: 1 }));
 
   const selected = selectVisitors(visitors, view);
-  const totalPages = Math.max(1, Math.ceil(selected.length / PER_PAGE));
+  const totalPages = Math.max(1, Math.ceil(selected.length / perPage));
   const page = Math.min(view.page, totalPages);
-  const pageRows = selected.slice((page - 1) * PER_PAGE, page * PER_PAGE);
+  const pageRows = selected.slice((page - 1) * perPage, page * perPage);
   const inside = visitors.filter(isInside);
   const waiting = visitors.filter(needsAdmin);
   const count = (status) => visitors.filter((v) => v.status === status).length;
 
   const cards = [
-    ["People inside now", inside.reduce((n, v) => n + groupSize(v), 0), MdLogin, "ok"],
-    ["Pending requests", count("pending"), MdOutlinePendingActions, "warn"],
-    ["Total visits", visitors.length, RiGroupFill, "accent"],
-    ["Approved", count("approved"), RiCheckboxCircleFill, "ok"],
-    ["Rejected", count("rejected"), RiCloseCircleFill, "bad"],
-    ["Today's visits", visitors.filter((v) => visitDay(v) === todayLocal()).length, MdEventAvailable, "accent"],
+    ["People inside now", inside.reduce((n, v) => n + groupSize(v), 0), MdLogin, "ok", "inside"],
+    ["Pending requests", count("pending"), MdOutlinePendingActions, "warn", "pending"],
+    ["Total visits", visitors.length, RiGroupFill, "accent", "all"],
+    ["Approved", count("approved"), RiCheckboxCircleFill, "ok", "approved"],
+    ["Rejected", count("rejected"), RiCloseCircleFill, "bad", "rejected"],
+    ["Today's visits", visitors.filter((v) => visitDay(v) === todayLocal()).length, MdEventAvailable, "accent", "today"],
   ];
 
   async function setStatus(visitor, status, message) {
@@ -124,134 +127,140 @@ const Admindashboard = () => {
   }, []);
 
   return (
-    <div className="min-h-screen">
+    <div className="flex min-h-screen flex-col fit:h-dvh fit:overflow-hidden">
       <Adminnavbar />
-      <main className="mx-auto max-w-[1280px] px-4 pb-12 sm:px-6">
-        <h1 className="font-display mb-6 mt-2 text-2xl font-extrabold tracking-tight sm:text-[28px]">Visitor dashboard</h1>
-        {error && <Notice type="error" className="mb-5">{error}</Notice>}
+      <main className="mx-auto flex min-h-0 w-full max-w-[1600px] flex-1 flex-col gap-3 px-4 pb-4 sm:px-8">
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+          <h1 className="font-display mr-auto text-xl font-extrabold tracking-tight sm:text-2xl">Visitor dashboard</h1>
+          <Overstays compact role="admin" onChange={refresh} />
+          {waiting.length > 0 && (
+            <button
+              type="button"
+              title="The person they want to meet is not in the teacher list"
+              onClick={() => setView({ ...DEFAULT_VIEW, filter: "admin" })}
+              className="min-h-10 cursor-pointer rounded-full px-4 text-[13px] font-extrabold"
+              style={TONES.accent}
+            >
+              Waiting for admin ({waiting.length})
+            </button>
+          )}
+        </div>
+        {error && <Notice type="error">{error}</Notice>}
 
-        <div className="mb-7 grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 xl:grid-cols-6">
-          {cards.map(([label, value, Icon, tone]) => (
-            <div key={label} className="clay-sm min-w-0 rounded-[22px] p-4">
-              <div className="mb-3 flex items-center justify-between gap-2">
-                <span className="text-[12.5px] font-bold text-[var(--muted)]">{label}</span>
-                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl" style={TONES[tone]}>
-                  <Icon />
-                </span>
-              </div>
-              <p className="font-display text-[28px] font-extrabold leading-none">{loading ? "…" : value}</p>
-            </div>
+        <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 lg:grid-cols-6">
+          {cards.map(([label, value, Icon, tone, filter]) => (
+            <button
+              key={label}
+              type="button"
+              aria-pressed={view.filter === filter}
+              onClick={() => setView({ ...DEFAULT_VIEW, filter })}
+              className="clay-sm flex min-w-0 cursor-pointer items-center gap-2.5 rounded-[18px] px-3 py-2.5 text-left transition hover:-translate-y-0.5"
+              style={view.filter === filter ? { outline: "2px solid var(--accent)" } : undefined}
+            >
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-lg" style={TONES[tone]}>
+                <Icon aria-hidden="true" />
+              </span>
+              <span className="min-w-0">
+                <span className="font-display block text-xl font-extrabold leading-none">{loading ? "…" : value}</span>
+                <span className="block text-[12px] font-bold leading-tight text-[var(--muted)]">{label}</span>
+              </span>
+            </button>
           ))}
         </div>
 
-        <section className="clay mb-7 rounded-[26px] p-4 sm:p-6">
-          <h2 className="font-display mb-3 text-lg font-extrabold">Inside now</h2>
-          {inside.length === 0 ? (
-            <p className="text-sm text-[var(--muted)]">{loading ? "Loading…" : "Nobody is inside right now."}</p>
-          ) : (
-            <ul className="grid max-h-72 gap-2.5 overflow-y-auto sm:grid-cols-2 lg:grid-cols-3">
-              {inside.map((v) => (
-                <li key={v._id} className="tile min-w-0 px-4 py-3">
-                  <p className="break-words font-extrabold">{v.name}{groupSize(v) > 1 && ` + ${groupSize(v) - 1}`}</p>
-                  <p className="text-[13px] text-[var(--muted)]">Meeting {v.toMeet || "—"} · in since {formatTime(v.entryTime)}</p>
-                </li>
-              ))}
-            </ul>
-          )}
-        </section>
+        <div className="grid min-h-0 flex-1 gap-3 lg:grid-cols-[minmax(0,1fr)_290px] xl:grid-cols-[minmax(0,1fr)_330px]">
+          <section className="flex min-h-0 min-w-0 flex-col gap-2.5 lg:rounded-[22px] lg:border lg:border-[var(--glass-line)] lg:bg-[var(--card)] lg:p-4 lg:shadow-[var(--shadow-clay)]">
+            <div className="flex flex-wrap items-center gap-2">
+              <h2 className="font-display w-full text-[15px] font-extrabold sm:w-auto">Visitors ({selected.length})</h2>
+              <input type="search" aria-label="Search by name" placeholder="Search name…" value={view.search} onChange={change("search")} className="input-clay input-slim min-w-0 flex-[2_1_110px]" />
+              <select aria-label="Filter" value={view.filter} onChange={change("filter")} className="input-clay input-slim min-w-0 flex-[1_1_128px] capitalize">
+                <option value="all">All visitors</option>
+                <option value="inside">Inside now</option>
+                <option value="admin">Waiting for admin</option>
+                {STATUSES.map((s) => (
+                  <option key={s} value={s}>{s}</option>
+                ))}
+                <option value="today">Today</option>
+                <option value="range">Date range</option>
+              </select>
+              <select aria-label="Sort" value={view.sort} onChange={change("sort")} className="input-clay input-slim min-w-0 flex-[1_1_122px]">
+                <option value="latest">Latest first</option>
+                <option value="oldest">Oldest first</option>
+              </select>
+              {view.filter === "range" && (
+                <>
+                  <input type="date" aria-label="From date" value={view.from} onChange={change("from")} className="input-clay input-slim min-w-0 flex-[1_1_130px]" />
+                  <input type="date" aria-label="To date" value={view.to} onChange={change("to")} className="input-clay input-slim min-w-0 flex-[1_1_130px]" />
+                </>
+              )}
+              <form
+                className="flex flex-[1_1_150px] gap-2"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  verifyPass(passId);
+                }}
+              >
+                <input aria-label="Pass ID" inputMode="numeric" placeholder="Pass ID" value={passId} onChange={(e) => setPassId(e.target.value)} className="input-clay input-slim w-full min-w-[84px] px-3" />
+                <button className="btn-primary rounded-[13px] px-3 text-[13px]">Verify</button>
+              </form>
+              <button type="button" aria-label="Download CSV" title="Download this list for Excel" onClick={() => downloadCsv(selected)} disabled={selected.length === 0} className="btn-soft flex items-center gap-1.5 rounded-[13px] px-3 text-[13px]">
+                <MdDownload aria-hidden="true" /> CSV
+              </button>
+            </div>
 
-        <Overstays role="admin" onChange={refresh} />
+            {notice && (
+              <Notice type={notice.type}>
+                <span className="flex items-center justify-between gap-3">
+                  {notice.text}
+                  <button type="button" aria-label="Dismiss" className="cursor-pointer px-2" onClick={() => setNotice(null)}>✕</button>
+                </span>
+              </Notice>
+            )}
 
-        {waiting.length > 0 && (
-          <section className="mb-7">
-            <h2 className="font-display text-lg font-extrabold">Waiting for admin ({waiting.length})</h2>
-            <p className="mb-3 text-[13px] text-[var(--muted)]">
-              The person they want to meet is not in the teacher list. Click a visitor's name to see details or email them.
-            </p>
-            <VisitorTable
-              visitors={waiting}
-              busyId={busyId}
-              onDetails={setDetails}
-              onVerify={verifyPass}
-              onApprove={(v) => setStatus(v, "approved")}
-              onReject={setRejecting}
-            />
+            <div ref={tableRef} className="min-h-0 flex-1 fit:overflow-hidden">
+              {pageRows.length === 0 ? (
+                <Notice className="text-center">{loading ? "Loading visitors…" : "No results found."}</Notice>
+              ) : (
+                <VisitorTable
+                  visitors={pageRows}
+                  busyId={busyId}
+                  onDetails={setDetails}
+                  onVerify={verifyPass}
+                  onApprove={(v) => setStatus(v, "approved")}
+                  onReject={setRejecting}
+                />
+              )}
+            </div>
+
+            <div className="flex items-center justify-center gap-3">
+              <button type="button" disabled={page === 1} onClick={() => setView((v) => ({ ...v, page: page - 1 }))} className="btn-soft rounded-[13px] px-4 text-[13px]">
+                Prev
+              </button>
+              <span className="text-[13px] font-extrabold">Page {page} of {totalPages}</span>
+              <button type="button" disabled={page === totalPages} onClick={() => setView((v) => ({ ...v, page: page + 1 }))} className="btn-soft rounded-[13px] px-4 text-[13px]">
+                Next
+              </button>
+            </div>
           </section>
-        )}
 
-        <DashboardCharts visitors={visitors} />
-
-        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-          <h2 className="font-display text-lg font-extrabold">Visitors ({selected.length})</h2>
-          <button type="button" onClick={() => downloadCsv(selected)} disabled={selected.length === 0} className="btn-soft px-4 py-2.5 text-[13px]">
-            Download CSV
-          </button>
-        </div>
-
-        <div className="mb-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <input type="search" aria-label="Search by name" placeholder="Search by name…" value={view.search} onChange={change("search")} className="input-clay w-full" />
-          <select aria-label="Filter" value={view.filter} onChange={change("filter")} className="input-clay w-full capitalize">
-            <option value="all">All visitors</option>
-            <option value="inside">Inside now</option>
-            <option value="admin">Waiting for admin</option>
-            {STATUSES.map((s) => (
-              <option key={s} value={s}>{s}</option>
-            ))}
-            <option value="today">Today</option>
-            <option value="range">Date range</option>
-          </select>
-          <select aria-label="Sort" value={view.sort} onChange={change("sort")} className="input-clay w-full">
-            <option value="latest">Latest first</option>
-            <option value="oldest">Oldest first</option>
-          </select>
-          <form
-            className="flex gap-2"
-            onSubmit={(e) => {
-              e.preventDefault();
-              verifyPass(passId);
-            }}
-          >
-            <input aria-label="Pass ID" inputMode="numeric" placeholder="Pass ID" value={passId} onChange={(e) => setPassId(e.target.value)} className="input-clay w-full min-w-0" />
-            <button className="btn-primary px-4 text-[13px]">Verify</button>
-          </form>
-          {view.filter === "range" && (
-            <>
-              <input type="date" aria-label="From date" value={view.from} onChange={change("from")} className="input-clay w-full" />
-              <input type="date" aria-label="To date" value={view.to} onChange={change("to")} className="input-clay w-full" />
-            </>
-          )}
-        </div>
-
-        {notice && (
-          <Notice type={notice.type} className="mb-4">
-            <span className="flex items-center justify-between gap-3">
-              {notice.text}
-              <button type="button" aria-label="Dismiss" className="cursor-pointer px-2" onClick={() => setNotice(null)}>✕</button>
-            </span>
-          </Notice>
-        )}
-
-        {pageRows.length === 0 ? (
-          <Notice className="text-center">{loading ? "Loading visitors…" : "No results found."}</Notice>
-        ) : (
-          <VisitorTable
-            visitors={pageRows}
-            busyId={busyId}
-            onDetails={setDetails}
-            onVerify={verifyPass}
-            onApprove={(v) => setStatus(v, "approved")}
-            onReject={setRejecting}
-          />
-        )}
-
-        <div className="mt-5 flex items-center justify-center gap-3">
-          <button type="button" disabled={page === 1} onClick={() => setView((v) => ({ ...v, page: page - 1 }))} className="btn-soft px-4 py-2.5 text-[13px]">
-            Prev
-          </button>
-          <span className="text-sm font-extrabold">Page {page} of {totalPages}</span>
-          <button type="button" disabled={page === totalPages} onClick={() => setView((v) => ({ ...v, page: page + 1 }))} className="btn-soft px-4 py-2.5 text-[13px]">
-            Next
-          </button>
+          <aside className="grid min-h-0 gap-3 sm:grid-cols-2 lg:grid-cols-1 fit:grid-rows-[auto_minmax(0,1fr)_minmax(0,.9fr)]">
+            <DashboardCharts visitors={visitors} />
+            <section className="clay flex min-h-0 min-w-0 flex-col rounded-[22px] p-4 sm:col-span-2 lg:col-span-1">
+              <h2 className="font-display mb-2 text-[15px] font-extrabold">Inside now{inside.length > 0 && ` (${inside.length})`}</h2>
+              {inside.length === 0 ? (
+                <p className="text-[13px] text-[var(--muted)]">{loading ? "Loading…" : "Nobody is inside right now."}</p>
+              ) : (
+                <ul className="grid min-h-0 max-h-56 content-start gap-2 overflow-y-auto fit:max-h-none fit:flex-1">
+                  {inside.map((v) => (
+                    <li key={v._id} className="min-w-0 border-b border-[var(--line)] pb-1.5 text-[13px] last:border-0">
+                      <b className="block truncate">{v.name}{groupSize(v) > 1 && ` + ${groupSize(v) - 1}`}</b>
+                      <span className="block truncate text-[12px] text-[var(--muted)]">{v.toMeet || "—"} · since {formatTime(v.entryTime)}</span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </section>
+          </aside>
         </div>
       </main>
 

@@ -11,7 +11,7 @@ const TOOLTIP = {
   itemStyle: { color: "var(--ink)" },
   labelStyle: { color: "var(--ink)" },
 };
-const TICK = { fill: "var(--muted)", fontSize: 12 };
+const TICK = { fill: "var(--muted)", fontSize: 11 };
 
 const DashboardCharts = ({ visitors }) => {
   const purposes = useMemo(() => {
@@ -33,17 +33,17 @@ const DashboardCharts = ({ visitors }) => {
   }, [visitors]);
 
   return (
-    <div className="mb-7 grid grid-cols-1 gap-5 lg:grid-cols-2">
-      <section className="clay min-w-0 rounded-[26px] p-4 sm:p-6">
-        <h2 className="font-display mb-3 text-lg font-extrabold">Visitors by purpose</h2>
+    <>
+      <section className="clay flex min-h-0 min-w-0 flex-col rounded-[22px] p-4">
+        <h2 className="font-display mb-2 text-[15px] font-extrabold">Visitors by purpose</h2>
         {purposes.length === 0 ? (
-          <div className="flex h-[260px] items-center justify-center text-sm text-[var(--muted)]">No visitor data yet</div>
+          <p className="py-6 text-center text-sm text-[var(--muted)]">No visitor data yet</p>
         ) : (
-          <div className="flex flex-col items-center gap-4 sm:flex-row">
-            <div className="h-[200px] w-full sm:w-1/2">
+          <div className="flex min-h-0 flex-1 items-center gap-3">
+            <div className="h-[130px] w-[130px] shrink-0 fit:h-[108px] fit:w-[108px]">
               <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie data={purposes} dataKey="value" nameKey="name" innerRadius={52} outerRadius={84} stroke="var(--card)" strokeWidth={2} startAngle={90} endAngle={-270}>
+                <PieChart margin={{ top: 0, right: 0, bottom: 0, left: 0 }}>
+                  <Pie data={purposes} dataKey="value" nameKey="name" innerRadius="58%" outerRadius="96%" stroke="var(--card)" strokeWidth={2} startAngle={90} endAngle={-270}>
                     {purposes.map(({ name }) => (
                       <Cell key={name} fill={colorOf(name)} />
                     ))}
@@ -52,11 +52,11 @@ const DashboardCharts = ({ visitors }) => {
                 </PieChart>
               </ResponsiveContainer>
             </div>
-            <ul className="grid w-full grid-cols-2 gap-x-4 gap-y-2 text-sm sm:w-1/2 sm:grid-cols-1">
+            <ul className="grid min-w-0 flex-1 gap-y-1 text-[12.5px] leading-[1.15]">
               {purposes.map(({ name, value }) => (
                 <li key={name} className="flex items-center gap-2">
-                  <span className="h-3 w-3 shrink-0 rounded-sm" style={{ background: colorOf(name) }} />
-                  <span className="text-[var(--muted)]">{name}</span>
+                  <span className="h-2.5 w-2.5 shrink-0 rounded-sm" style={{ background: colorOf(name) }} />
+                  <span className="truncate text-[var(--muted)]">{name}</span>
                   <b className="ml-auto">{value}</b>
                 </li>
               ))}
@@ -65,19 +65,21 @@ const DashboardCharts = ({ visitors }) => {
         )}
       </section>
 
-      <section className="clay min-w-0 rounded-[26px] p-4 sm:p-6">
-        <h2 className="font-display mb-3 text-lg font-extrabold">Visits by weekday</h2>
-        <ResponsiveContainer width="100%" height={260}>
-          <BarChart data={weekdays} margin={{ left: -20 }}>
-            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--line)" />
-            <XAxis dataKey="day" tick={TICK} interval={0} />
-            <YAxis allowDecimals={false} tick={TICK} />
-            <Tooltip {...TOOLTIP} cursor={{ fill: "var(--accent-soft)" }} />
-            <Bar dataKey="visitors" name="Visitors" fill="var(--accent)" radius={[4, 4, 0, 0]} maxBarSize={36} />
-          </BarChart>
-        </ResponsiveContainer>
+      <section className="clay flex min-h-0 min-w-0 flex-col rounded-[22px] p-4">
+        <h2 className="font-display mb-2 text-[15px] font-extrabold">Visits by weekday</h2>
+        <div className="h-[130px] min-h-0 fit:h-auto fit:flex-1">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={weekdays} margin={{ top: 4, right: 0, bottom: -8, left: -32 }}>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--line)" />
+              <XAxis dataKey="day" tick={TICK} interval={0} tickLine={false} />
+              <YAxis allowDecimals={false} tick={TICK} tickCount={3} tickLine={false} axisLine={false} />
+              <Tooltip {...TOOLTIP} cursor={{ fill: "var(--accent-soft)" }} />
+              <Bar dataKey="visitors" name="Visitors" fill="var(--accent)" radius={[4, 4, 0, 0]} maxBarSize={26} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
       </section>
-    </div>
+    </>
   );
 };
 

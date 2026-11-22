@@ -1,73 +1,57 @@
-import Navbar from './Navbar'
-import { Link } from 'react-router-dom'
-import { QRCode } from 'react-qr-code'
-import { getOrg } from '../lib/org'
+import { Link } from "react-router-dom";
+import { MdArrowForward, MdPersonAddAlt1 } from "react-icons/md";
+import Navbar from "./Navbar";
+import HeroPass, { HeroSteps } from "./HeroPass";
+import StaffLogin from "./StaffLogin";
+import { useHeroStep } from "../hooks/useHeroStep";
+import { getOrg } from "../lib/org";
 
 const Landingpg = () => {
+  const { step, person } = useHeroStep();
+
   return (
-    <div className="relative min-h-screen overflow-hidden">
-      {/* clay background blobs */}
-      <div className="pointer-events-none absolute -top-32 -right-24 h-[380px] w-[380px] rounded-full opacity-15 blur-sm"
-        style={{ background: "linear-gradient(140deg,var(--accent2),var(--accent))", animation: "floaty 9s ease-in-out infinite" }} />
-      <div className="pointer-events-none absolute -bottom-36 -left-28 h-[420px] w-[420px] rounded-full opacity-10 blur-md"
-        style={{ background: "linear-gradient(140deg,var(--accent),var(--accent2))", animation: "floaty 12s ease-in-out infinite" }} />
+    <div className="relative flex min-h-dvh flex-col overflow-hidden">
+      <div aria-hidden="true" className="pointer-events-none absolute inset-0">
+        <span className="aurora -right-24 -top-32 h-[440px] w-[440px]" style={{ background: "var(--accent2)" }} />
+        <span className="aurora -bottom-40 -left-28 h-[460px] w-[460px]" style={{ background: "var(--accent)", animationDelay: "-6s" }} />
+        <span className="aurora left-[38%] top-[30%] h-[300px] w-[300px]" style={{ background: "#3fbf7f", opacity: 0.1, animationDelay: "-11s" }} />
+      </div>
 
       <Navbar />
 
-      <div className="relative z-10 grid items-center gap-10 px-5 pt-8 pb-16 sm:px-10 lg:grid-cols-[1.1fr_.9fr] lg:gap-16 lg:px-20 lg:pt-16">
-        <div style={{ animation: "fadeUp .6s ease both" }}>
-          <div className="glass mb-6 inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 text-[13px] font-bold text-[var(--muted)]">
-            <span className="h-2 w-2 rounded-full bg-[#3FBF7F]" />
-            {getOrg().name}
+      <main className="relative z-10 mx-auto flex w-full max-w-[1320px] flex-1 flex-col justify-between gap-6 px-4 pb-6 sm:px-10">
+        <div className="grid flex-1 items-center gap-6 pt-2 md:grid-cols-[1.1fr_.9fr] lg:gap-12">
+          <div style={{ animation: "fadeUp .6s ease both" }}>
+            <div className="glass mb-5 inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 text-[13px] font-bold text-[var(--muted)]">
+              <span className="live-dot h-2 w-2 rounded-full bg-[#3FBF7F]" />
+              {getOrg().name}
+            </div>
+            <h1 className="font-display mb-4 text-4xl font-extrabold leading-[1.06] tracking-tight sm:text-5xl xl:text-6xl" style={{ textWrap: "balance" }}>
+              Smart &amp; secure visitor management
+            </h1>
+            <p className="mb-6 text-lg font-semibold text-[var(--muted)] sm:text-xl">
+              Every guest expected. Every entry verified.
+            </p>
+            <Link to="/Visitor" className="btn-primary btn-shine flex w-full items-center gap-4 rounded-[24px] p-4 sm:max-w-[440px] sm:p-5">
+              <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-white/20 text-2xl"><MdPersonAddAlt1 aria-hidden="true" /></span>
+              <span className="min-w-0 flex-1">
+                <span className="font-display block text-xl font-extrabold sm:text-[22px]">Register as visitor</span>
+                <span className="block text-sm font-semibold text-white/90">Takes under a minute</span>
+              </span>
+              <MdArrowForward aria-hidden="true" className="shrink-0 text-2xl" />
+            </Link>
+            <div className="mt-5 flex min-h-12 items-center">
+              <StaffLogin />
+            </div>
           </div>
-          <h1 className="font-display mb-4 text-4xl font-extrabold leading-[1.06] tracking-tight sm:text-5xl lg:text-6xl" style={{ textWrap: "pretty" }}>
-            Smart &amp; secure visitor management
-          </h1>
-          <p className="mb-8 max-w-[52ch] text-[15px] leading-relaxed text-[var(--muted)] sm:text-lg" style={{ textWrap: "pretty" }}>
-            Digitize visitor entry, strengthen security, and manage records effortlessly — from
-            registration and OTP verification to face-verified entry.
-          </p>
-          <div className="grid gap-3.5 sm:max-w-[440px] sm:grid-cols-2">
-            <Link to="/Visitor" className="btn-primary px-6 py-3.5 text-[15px] text-center">Register as visitor</Link>
-            <Link to="/TeacherLogin" className="clay-sm cursor-pointer rounded-[18px] px-6 py-3.5 text-[15px] font-extrabold text-[var(--ink)] transition hover:-translate-y-0.5 text-center">Login as teacher</Link>
-            <Link to="/GuardLogin" className="clay-sm cursor-pointer rounded-[18px] px-6 py-3.5 text-[15px] font-extrabold text-[var(--ink)] transition hover:-translate-y-0.5 text-center">Login as guard</Link>
-            <Link to="/AdminLogin" className="clay-sm cursor-pointer rounded-[18px] px-6 py-3.5 text-[15px] font-extrabold text-[var(--ink)] transition hover:-translate-y-0.5 text-center">Login as admin</Link>
-          </div>
+
+          <HeroPass step={step} person={person} />
         </div>
 
-        {/* floating pass-card visual */}
-        <div className="relative hidden min-h-[420px] items-center justify-center md:flex">
-          <div className="clay w-[min(340px,90%)] rounded-[28px] p-6" style={{ animation: "floaty 8s ease-in-out infinite" }}>
-            <div className="mb-4 flex items-center justify-between">
-              <span className="font-display text-[13px] font-extrabold tracking-[.14em] text-[var(--muted)]">VISITOR PASS</span>
-              <span className="rounded-full px-2.5 py-1 text-[11px] font-extrabold tracking-wide" style={{ background: "var(--ok-bg)", color: "var(--ok-fg)" }}>APPROVED</span>
-            </div>
-            <div className="mb-4 flex items-center gap-3.5">
-              <div className="font-display flex h-14 w-14 items-center justify-center rounded-[18px] text-xl font-extrabold text-white"
-                style={{ background: "linear-gradient(160deg,var(--accent2),var(--accent))", boxShadow: "var(--shadow-clay-sm)" }}>PS</div>
-              <div>
-                <div className="text-[17px] font-extrabold">Priya Sharma</div>
-                <div className="text-[13px] text-[var(--muted)]">Meeting · R. Mehta</div>
-              </div>
-            </div>
-            <div className="mb-4 grid grid-cols-2 gap-2.5">
-              <div className="tile px-3 py-2.5">
-                <div className="text-[11px] font-bold tracking-wider text-[var(--muted)]">PASS ID</div>
-                <div className="mt-0.5 text-[15px] font-extrabold">481264</div>
-              </div>
-              <div className="tile px-3 py-2.5">
-                <div className="text-[11px] font-bold tracking-wider text-[var(--muted)]">DATE</div>
-                <div className="mt-0.5 text-[15px] font-extrabold">Today</div>
-              </div>
-            </div>
-            <div className="tile flex justify-center rounded-[18px] p-3.5">
-              <QRCode value="481264" size={104} className="rounded-lg bg-white p-2" />
-            </div>
-          </div>
-        </div>
-      </div>
+        <HeroSteps step={step} />
+      </main>
     </div>
-  )
-}
+  );
+};
 
-export default Landingpg
+export default Landingpg;

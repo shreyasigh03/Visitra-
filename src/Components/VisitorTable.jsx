@@ -1,17 +1,17 @@
 import StatusBadge from "./StatusBadge";
 import { formatDay } from "../lib/visitors";
 
-const HEADINGS = ["Pass ID", "Name", "Email", "Phone", "To Meet", "Date", "Status"];
+const BUTTON = "min-h-10 px-3 text-[13px] lg:min-h-8 lg:rounded-[11px] lg:px-2.5 lg:text-[12px]";
 
 const Actions = ({ visitor: v, busy, onVerify, onApprove, onReject }) => (
   <>
-    <button type="button" onClick={() => onVerify(v.passId)} className="btn-soft px-3 text-[13px]">
+    <button type="button" onClick={() => onVerify(v.passId)} className={`btn-soft ${BUTTON}`}>
       Verify
     </button>
-    <button type="button" onClick={() => onApprove(v)} disabled={busy || v.status === "approved"} className="btn-ok px-3 text-[13px]">
+    <button type="button" onClick={() => onApprove(v)} disabled={busy || v.status === "approved"} className={`btn-ok ${BUTTON}`}>
       Approve
     </button>
-    <button type="button" onClick={() => onReject(v)} disabled={busy || v.status === "rejected"} className="btn-danger px-3 text-[13px]">
+    <button type="button" onClick={() => onReject(v)} disabled={busy || v.status === "rejected"} className={`btn-danger ${BUTTON}`}>
       Reject
     </button>
   </>
@@ -42,40 +42,41 @@ const VisitorTable = ({ visitors, busyId, onDetails, ...handlers }) => (
       ))}
     </ul>
 
-    <div className="clay hidden overflow-x-auto rounded-[26px] p-6 lg:block">
-      <table className="w-full border-collapse text-sm">
-        <thead>
-          <tr>
-            {HEADINGS.map((h) => (
-              <th key={h} className="th-clay">{h}</th>
-            ))}
-            <th className="th-clay">Actions</th>
+    <table className="hidden w-full table-fixed border-collapse text-[13px] lg:table">
+      <thead>
+        <tr>
+          <th className="th-clay px-2 py-2 w-[76px]">Pass ID</th>
+          <th className="th-clay px-2 py-2">Visitor</th>
+          <th className="th-clay px-2 py-2 hidden 2xl:table-cell">Email</th>
+          <th className="th-clay px-2 py-2">To meet</th>
+          <th className="th-clay px-2 py-2 w-[108px]">Date</th>
+          <th className="th-clay px-2 py-2 w-[96px]">Status</th>
+          <th className="th-clay px-2 py-2 w-[216px]">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {visitors.map((v) => (
+          <tr key={v._id} className="h-[50px] transition hover:bg-[var(--surface)]">
+            <td className="td-clay px-2 py-1 font-bold text-[var(--muted)]">{v.passId || "—"}</td>
+            <td className="td-clay px-2 py-1">
+              <button type="button" onClick={() => onDetails(v)} title="View details" className="block max-w-full cursor-pointer truncate text-left font-extrabold underline decoration-dotted underline-offset-4">
+                {v.name}
+              </button>
+              <span className="block truncate text-[12px] leading-tight text-[var(--muted)]">{v.phone || "—"}</span>
+            </td>
+            <td className="td-clay px-2 py-1 hidden truncate text-[var(--muted)] 2xl:table-cell" title={v.email}>{v.email || "—"}</td>
+            <td className="td-clay px-2 py-1 truncate font-semibold" title={v.toMeet}>{v.toMeet || "—"}</td>
+            <td className="td-clay px-2 py-1 whitespace-nowrap text-[var(--muted)]">{formatDay(v)}</td>
+            <td className="td-clay px-2 py-1"><StatusBadge status={v.status} /></td>
+            <td className="td-clay px-2 py-1">
+              <div className="flex gap-1.5">
+                <Actions visitor={v} busy={busyId === v._id} {...handlers} />
+              </div>
+            </td>
           </tr>
-        </thead>
-        <tbody>
-          {visitors.map((v) => (
-            <tr key={v._id} className="transition hover:bg-[var(--surface)]">
-              <td className="td-clay font-bold text-[var(--muted)]">{v.passId || "—"}</td>
-              <td className="td-clay">
-                <button type="button" onClick={() => onDetails(v)} title="View details" className="min-h-10 cursor-pointer text-left font-extrabold underline decoration-dotted underline-offset-4">
-                  {v.name}
-                </button>
-              </td>
-              <td className="td-clay break-all text-[var(--muted)]">{v.email || "—"}</td>
-              <td className="td-clay text-[var(--muted)]">{v.phone || "—"}</td>
-              <td className="td-clay font-semibold">{v.toMeet || "—"}</td>
-              <td className="td-clay whitespace-nowrap text-[var(--muted)]">{formatDay(v)}</td>
-              <td className="td-clay"><StatusBadge status={v.status} /></td>
-              <td className="td-clay">
-                <div className="flex gap-1.5">
-                  <Actions visitor={v} busy={busyId === v._id} {...handlers} />
-                </div>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+        ))}
+      </tbody>
+    </table>
   </>
 );
 

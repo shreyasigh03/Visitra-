@@ -9,7 +9,7 @@ function toHttpError(err) {
     return new HttpError(
       503,
       config.online
-        ? "The face photo works only on the campus computer for now."
+        ? "The photo check is not available right now. Please register at the reception."
         : "Face recognition service is not running. Start it with `npm run dev:all` and wait until it says 'Application startup complete'.",
     );
   }

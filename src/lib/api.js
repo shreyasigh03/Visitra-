@@ -47,8 +47,7 @@ export async function getServiceWarning() {
     const res = await fetch(`${API_BASE_URL}/api/health`);
     const { db, faceService, online } = await res.json();
     if (!db) return "The database is not connected, so registrations can't be saved right now.";
-    if (!faceService && online) return "The face photo works only on the campus computer for now. Everything else works here.";
-    if (!faceService) return "The face recognition service is off or still starting. Please wait a moment.";
+    if (!faceService && !online) return "The face recognition service is off or still starting. Please wait a moment.";
     return "";
   } catch {
     return UNREACHABLE;
