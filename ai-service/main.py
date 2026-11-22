@@ -1,70 +1,59 @@
+import base64
+import binascii
 
-from fastapi import FastAPI, Response
-from pydantic import BaseModel , Field, ConfigDict
-from insightface.app import FaceAnalysis
-from anti_spoof import check_liveness
 import cv2
 import numpy as np
+from fastapi import FastAPI, Response
+from insightface.app import FaceAnalysis
+from pydantic import BaseModel, ConfigDict, Field
 
-#server bna hai
-app = FastAPI()
+from anti_spoof import check_liveness
 
+MATCH_THRESHOLD = 0.65
 
-
-
-
-
+app = FastAPI(title="VISITRA face service")
 
 face_app = FaceAnalysis(name="buffalo_l")
-face_app.prepare(ctx_id=-1)   # CPU
+face_app.prepare(ctx_id=-1)  # CPU
+
+
+def decode_image(image_base64: str):
+    try:
+        raw = base64.b64decode(image_base64, validate=True)
+    except (binascii.Error, ValueError):
+        return None
+    return cv2.imdecode(np.frombuffer(raw, dtype=np.uint8), cv2.IMREAD_COLOR)
+
 
 class ImageData(BaseModel):
-    image_path: str
+    image_base64: str
 
 
 @app.post("/generate-embedding")
 def generate_embedding(data: ImageData):
-
-    image = cv2.imread(data.image_path)
-
+    image = decode_image(data.image_base64)
     if image is None:
-        return {
-            "success": False,
-            "message": "Image not found"
-        }
-    
-    faces = face_app.get(image)
+        return {"success": False, "message": "The photo could not be read. Please capture again."}
 
+    faces = face_app.get(image)
     if len(faces) == 0:
         return {
             "success": False,
-            "message": "No face detected in the uploaded image. Please upload and register an image with a clearly visible face."
+            "message": "No face detected. Make sure your face is clearly visible and capture again.",
         }
-
     if len(faces) > 1:
         return {
             "success": False,
-            "message": "Multiple faces detected. Please ensure only one person is in the frame."
+            "message": "Multiple faces detected. Please ensure only one person is in the frame.",
         }
 
-    # ---------- Anti Spoof Check ----------
-    is_real = check_liveness(image)
+    if not check_liveness(image):
+        return {
+            "success": False,
+            "message": "The camera check could not confirm a live face. Face the camera directly in good lighting and capture again.",
+        }
 
-    if not is_real:
-       return {
-           "success": False,
-            "message": "The camera check could not confirm a live face. Face the camera directly in good lighting and capture again."
-    }
-
-    embedding = faces[0].embedding.tolist()
-
-    return {
-        "success": True,
-        "embedding": embedding
-    }    
-
-
-
+    return {"success": True, "embedding": faces[0].embedding.tolist()}
 
 
 class VisitorEmbedding(BaseModel):
@@ -73,50 +62,41 @@ class VisitorEmbedding(BaseModel):
     faceEncoding: list[float]
 
 
-class CompareAllRequest(BaseModel):
+class CompareRequest(BaseModel):
     liveEmbedding: list[float]
     visitors: list[VisitorEmbedding]
 
-@app.post("/compare-embeding")  
-def compare_embeding(data: CompareAllRequest):
-    live=np.array(data.liveEmbedding)  
-    live = live / np.linalg.norm(live)  
-    best_distance = -1.0
-    best_id=None
-    threshold=0.65
+
+def normalize(vector):
+    arr = np.asarray(vector, dtype=np.float32)
+    return arr / np.linalg.norm(arr)
+
+
+@app.post("/compare-embedding")
+def compare_embedding(data: CompareRequest):
+    live = normalize(data.liveEmbedding)
+    best_score, best_id = -1.0, None
+
     for visitor in data.visitors:
-        db= np.array(visitor.faceEncoding)
-        db = db / np.linalg.norm(db) 
-       #dono array ke bech ka distance mtlb diff find krke dega
-        distance = float(np.dot(live, db))
-        
-        print("Visitor:", visitor.id)
-        print("Distance:", distance)
-        print(len(live))
-        print(len(db))
+        score = float(np.dot(live, normalize(visitor.faceEncoding)))  # cosine similarity
+        if score > best_score:
+            best_score, best_id = score, visitor.id
 
-        if(distance>best_distance):
-            best_distance=distance
-            best_id=visitor.id
+    if best_id is not None and best_score >= MATCH_THRESHOLD:
+        return {"success": True, "visitor_id": best_id, "similarity": round(best_score * 100, 2)}
+    return {"success": False}
 
-        print(best_distance);    
 
-    if best_id is not None and best_distance >= threshold:
-        similarity = round(  best_distance * 100 , 2 )
-        return {
-            #return ke andr json format m hta h data
-            "success": True,
-            "visitor_id": best_id,
-            "similarity": similarity
-        }
+@app.post("/decode-qr")
+def decode_qr(data: ImageData):
+    image = decode_image(data.image_base64)
+    if image is None:
+        return {"text": ""}
+    # A new detector per call: OpenCV's is not safe across threads.
+    text, _, _ = cv2.QRCodeDetector().detectAndDecode(image)
+    return {"text": text}
 
-    return{
-        "success":False
-    }        
-    
-        
 
-#ye api ka format hai-jb bhi browser mai y url open hga toh iske neche wala func chlega
 @app.get("/")
 def home():
     return {"message": "AI Service Running"}
@@ -125,4 +105,3 @@ def home():
 @app.get("/favicon.ico", include_in_schema=False)
 def favicon():
     return Response(status_code=204)
-

@@ -1,0 +1,14 @@
+import { useEffect, useState } from "react";
+
+const KEY = "visitra-theme";
+
+export function useTheme() {
+  const [dark, setDark] = useState(() => localStorage.getItem(KEY) === "dark");
+
+  useEffect(() => {
+    document.documentElement.classList.toggle("dark", dark);
+    localStorage.setItem(KEY, dark ? "dark" : "light");
+  }, [dark]);
+
+  return { dark, toggleTheme: () => setDark((d) => !d) };
+}

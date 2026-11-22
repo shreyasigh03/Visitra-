@@ -1,6 +1,6 @@
-import React from 'react'
 import Navbar from './Navbar'
-import { NavLink } from 'react-router-dom'
+import { Link } from 'react-router-dom'
+import { getOrg } from '../lib/org'
 
 const Landingpg = () => {
   return (
@@ -17,7 +17,7 @@ const Landingpg = () => {
         <div style={{ animation: "fadeUp .6s ease both" }}>
           <div className="glass mb-6 inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 text-[13px] font-bold text-[var(--muted)]">
             <span className="h-2 w-2 rounded-full bg-[#3FBF7F]" />
-            Enterprise visitor management
+            {getOrg().name}
           </div>
           <h1 className="font-display mb-4 text-4xl font-extrabold leading-[1.06] tracking-tight sm:text-5xl lg:text-6xl" style={{ textWrap: "pretty" }}>
             Smart &amp; secure visitor management
@@ -27,14 +27,10 @@ const Landingpg = () => {
             registration and OTP verification to face-verified entry.
           </p>
           <div className="flex flex-wrap gap-3.5">
-            <NavLink to="/Visitor">
-              <button className="btn-primary px-6 py-3.5 text-[15px]">Register as visitor</button>
-            </NavLink>
-            <NavLink to="/AdminLogin">
-              <button className="clay-sm cursor-pointer rounded-[18px] px-6 py-3.5 text-[15px] font-extrabold text-[var(--ink)] transition hover:-translate-y-0.5">
-                Login as admin
-              </button>
-            </NavLink>
+            <Link to="/Visitor" className="btn-primary px-6 py-3.5 text-[15px] w-full text-center sm:w-auto">Register as visitor</Link>
+            <Link to="/TeacherLogin" className="clay-sm cursor-pointer rounded-[18px] px-6 py-3.5 text-[15px] font-extrabold text-[var(--ink)] transition hover:-translate-y-0.5 w-full text-center sm:w-auto">Login as teacher</Link>
+            <Link to="/GuardLogin" className="clay-sm cursor-pointer rounded-[18px] px-6 py-3.5 text-[15px] font-extrabold text-[var(--ink)] transition hover:-translate-y-0.5 w-full text-center sm:w-auto">Login as guard</Link>
+            <Link to="/AdminLogin" className="clay-sm cursor-pointer rounded-[18px] px-6 py-3.5 text-[15px] font-extrabold text-[var(--ink)] transition hover:-translate-y-0.5 w-full text-center sm:w-auto">Login as admin</Link>
           </div>
         </div>
 

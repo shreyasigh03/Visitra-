@@ -5,22 +5,22 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:all": "node scripts/dev.mjs",
+    "demo": "node scripts/demo.mjs",
     "build": "vite build",
     "lint": "eslint .",
     "preview": "vite preview"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.2.2",
-    "html2canvas": "^1.4.1",
     "jspdf": "^4.2.1",
-    "nodemailer": "^8.0.4",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
     "react-icons": "^5.6.0",
     "react-qr-code": "^2.0.18",
     "react-router-dom": "^7.13.1",
     "react-webcam": "^7.2.0",
-    "recharts": "^3.10.1"
+    "recharts": "^3.11.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.4",

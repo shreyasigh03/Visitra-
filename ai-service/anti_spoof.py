@@ -23,21 +23,19 @@ model_dir = os.path.join(
 predictor = AntiSpoofPredict(0)
 image_cropper = CropImage()
 
+MODEL_NAMES = sorted(name for name in os.listdir(model_dir) if name.endswith(".pth"))
+if not MODEL_NAMES:
+    raise RuntimeError(f"No anti-spoof model weights found in {model_dir}")
+
 def check_liveness(image):
     if image is None or image.size == 0:
         return False
-
-    model_names = sorted(
-        name for name in os.listdir(model_dir) if name.endswith(".pth")
-    )
-    if not model_names:
-        raise RuntimeError(f"No anti-spoof model weights found in {model_dir}")
 
     prediction = np.zeros((1, 3))
 
     image_bbox = predictor.get_bbox(image)
 
-    for model_name in model_names:
+    for model_name in MODEL_NAMES:
         h_input, w_input, model_type, scale = parse_model_name(model_name)
 
         param = {
@@ -58,13 +56,4 @@ def check_liveness(image):
             os.path.join(model_dir, model_name)
         )
 
-    # label = np.argmax(prediction)
-
-    # return label == 1
-
-    label = np.argmax(prediction)
-    score = prediction[0][label]
-
-    print("Anti-spoof prediction:", prediction, "label:", label, "score:", score)
-
-    return label == 1
+    return int(np.argmax(prediction)) == 1
