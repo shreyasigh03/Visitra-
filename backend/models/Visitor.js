@@ -25,6 +25,7 @@ const visitorSchema = new mongoose.Schema(
     entryGranted: Boolean, // the gate let them in (old records also hold refused scans)
     exitClosedBy: String, // set when someone marked them as left without a scan
     photo: String, // path of the registration photo on disk; removed with the face data
+    photoData: { type: Buffer, select: false }, // the photo itself, where there is no disk for it
     faceEncoding: { type: [Number], default: [], select: false },
     faceDeletedAt: Date,
   },

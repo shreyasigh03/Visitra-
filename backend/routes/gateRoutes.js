@@ -89,7 +89,8 @@ router.post("/confirm", async (req, res) => {
 
 router.get("/photo/:id", async (req, res) => {
   if (!isValidObjectId(req.params.id)) throw new HttpError(404, "No photo.");
-  const visitor = await Visitor.findById(req.params.id).select("photo").lean();
+  const visitor = await Visitor.findById(req.params.id).select("photo +photoData").lean();
+  if (visitor?.photoData) return res.type("jpg").send(visitor.photoData.buffer);
   const name = visitor?.photo?.split(/[\\/]/).pop();
   if (!name) throw new HttpError(404, "No photo.");
   res.sendFile(name, { root: UPLOAD_DIR }, (err) => {

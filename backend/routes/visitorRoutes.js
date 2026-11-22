@@ -4,6 +4,7 @@ const path = require("path");
 const express = require("express");
 const { isValidObjectId, Types } = require("mongoose");
 
+const config = require("../config/env");
 const Visitor = require("../models/Visitor");
 const Otp = require("../models/Otp");
 const Teacher = require("../models/Teacher");
@@ -53,10 +54,11 @@ async function generatePassId() {
 }
 
 async function savePhoto(buffer) {
+  if (config.online) return { photo: "database", photoData: buffer };
   await fs.mkdir(UPLOAD_DIR, { recursive: true });
   const filePath = path.join(UPLOAD_DIR, `${Date.now()}-${crypto.randomUUID()}.jpg`);
   await fs.writeFile(filePath, buffer);
-  return filePath;
+  return { photo: filePath };
 }
 
 // Creates a fresh OTP for the visitor and emails it. Throws if the email fails.
@@ -155,7 +157,7 @@ router.post("/register", registerLimiter, upload.single("photo"), async (req, re
       ...data,
       visitTime: slot?.time,
       passId: await generatePassId(),
-      photo: await savePhoto(req.file.buffer),
+      ...(await savePhoto(req.file.buffer)),
       faceEncoding: face.embedding,
     });
   } catch (err) {
@@ -260,7 +262,7 @@ router.post("/verify-face", upload.single("img"), async (req, res) => {
   };
   let match = { success: false };
   for (const group of [0, 1, 2, 3].map((n) => candidates.filter((v) => rank(v) === n))) {
-    if (group.length) match = await findBestMatch(face.embedding, group);
+    if (group.length) match = findBestMatch(face.embedding, group);
     if (match.success) break;
   }
   if (!match.success) return res.json({ success: false, message: "Face not recognized." });

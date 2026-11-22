@@ -11,7 +11,7 @@ const VIDEO = {
   facingMode: "user",
 };
 const PAUSE_MS = 150;
-const GIVE_UP_MS = 15_000;
+const GIVE_UP_MS = 25_000; // the online check can be slow the first time
 const GOOD_IN_A_ROW = 2; // one lucky frame is not enough
 
 const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));

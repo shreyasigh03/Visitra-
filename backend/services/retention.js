@@ -47,9 +47,9 @@ async function findDue() {
   return { total: all.length, records, faces };
 }
 
-// The Excel folder and the photos are on the campus computer.
+// The Excel folder is on one laptop.
 function requireThisComputer() {
-  if (config.online) throw new HttpError(409, "Clean-up works only on the campus computer.");
+  if (config.online) throw new HttpError(409, "Clean-up works only on the laptop that has the Excel folder.");
 }
 
 async function previewCleanup() {
@@ -105,7 +105,7 @@ async function runCleanup() {
     for (const v of faces) {
       const { modifiedCount } = await Visitor.updateOne(
         unchanged(v),
-        { $set: { faceEncoding: [], faceDeletedAt: new Date() }, $unset: { photo: "" } },
+        { $set: { faceEncoding: [], faceDeletedAt: new Date() }, $unset: { photo: "", photoData: "" } },
         { timestamps: false },
       );
       if (!modifiedCount) continue;

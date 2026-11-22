@@ -57,7 +57,7 @@ app.use(notFound);
 app.use(errorHandler);
 
 app.listen(config.port, () => {
-  if (config.online) return; // the computer on campus does the regular jobs
+  if (config.online) return; // the laptop does the regular jobs
   console.log(`[server] Backend running on http://localhost:${config.port}`);
   connectDB();
   startCleanupSchedule();

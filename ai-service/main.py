@@ -1,16 +1,16 @@
 import base64
 import binascii
+import hmac
+import os
 
 import cv2
 import numpy as np
-from fastapi import FastAPI, Response
-from insightface.app import FaceAnalysis
-from insightface.app.common import Face
-from pydantic import BaseModel, ConfigDict, Field
+from fastapi import FastAPI, Request, Response
+from fastapi.responses import JSONResponse
+from pydantic import BaseModel
 
 from anti_spoof import check_liveness
-
-MATCH_THRESHOLD = 0.65
+from faces import detect, embed
 
 # Low, so that a second face that is small, turned or half out of the photo is found too.
 FACE_THRESHOLD = 0.3
@@ -27,8 +27,15 @@ MIN_SHARPNESS = 25
 
 app = FastAPI(title="VISITRA face service")
 
-face_app = FaceAnalysis(name="buffalo_l", allowed_modules=["detection", "recognition"])
-face_app.prepare(ctx_id=-1, det_thresh=FACE_THRESHOLD)  # CPU
+# Online, only the backend may use this service. Empty on a computer.
+KEY = os.environ.get("AI_SERVICE_KEY", "")
+
+
+@app.middleware("http")
+async def check_key(request: Request, call_next):
+    if KEY and request.url.path != "/" and not hmac.compare_digest(request.headers.get("x-visitra-key", "").encode(), KEY.encode()):
+        return JSONResponse({"detail": "Not allowed."}, status_code=401)
+    return await call_next(request)
 
 
 def decode_image(image_base64: str):
@@ -43,11 +50,11 @@ def find_faces(image):
     h, w = image.shape[:2]
     dy, dx = int(h * BORDER), int(w * BORDER)
     padded = cv2.copyMakeBorder(image, dy, dy, dx, dx, cv2.BORDER_CONSTANT, value=(127, 127, 127))
-    boxes, points = face_app.det_model.detect(padded)
-    return [
-        Face(bbox=box[:4] - (dx, dy, dx, dy), kps=kps - (dx, dy), det_score=box[4])
-        for box, kps in zip(boxes, points)
-    ]
+    faces = detect(padded, FACE_THRESHOLD)
+    for face in faces:
+        face.bbox = face.bbox - (dx, dy, dx, dy)
+        face.kps = face.kps - (dx, dy)
+    return faces
 
 
 def photo_problem(image, face):
@@ -126,41 +133,7 @@ def generate_embedding(data: ImageData):
     image, face, message = check_photo(data.image_base64)
     if message:
         return {"success": False, "message": message}
-    face_app.models["recognition"].get(image, face)
-    return {"success": True, "embedding": face.embedding.tolist()}
-
-
-class VisitorEmbedding(BaseModel):
-    model_config = ConfigDict(populate_by_name=True)
-    id: str = Field(alias="_id")
-    faceEncoding: list[float]
-
-
-class CompareRequest(BaseModel):
-    liveEmbedding: list[float]
-    visitors: list[VisitorEmbedding]
-
-
-def normalize(vector):
-    arr = np.asarray(vector, dtype=np.float32)
-    return arr / np.linalg.norm(arr)
-
-
-@app.post("/compare-embedding")
-def compare_embedding(data: CompareRequest):
-    live = normalize(data.liveEmbedding)
-    best_score, best_id = -1.0, None
-
-    for visitor in data.visitors:
-        if len(visitor.faceEncoding) != len(live):
-            continue  # an invalid record must not stop the gate
-        score = float(np.dot(live, normalize(visitor.faceEncoding)))  # cosine similarity
-        if score > best_score:
-            best_score, best_id = score, visitor.id
-
-    if best_id is not None and best_score >= MATCH_THRESHOLD:
-        return {"success": True, "visitor_id": best_id, "similarity": round(best_score * 100, 2)}
-    return {"success": False}
+    return {"success": True, "embedding": embed(image, face).tolist()}
 
 
 @app.post("/decode-qr")

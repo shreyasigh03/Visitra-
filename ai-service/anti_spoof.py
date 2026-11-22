@@ -1,61 +1,65 @@
-import os
-import sys
+"""Tells a live face from a printed or shown photo, with the Silent-Face models (Apache 2.0)."""
+import math
 import threading
 
+import cv2
 import numpy as np
-import torch
+import onnxruntime
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-SILENT_FACE_DIR = os.path.join(BASE_DIR, "silent_face")
+from model_files import model_path
 
-# Add silent_face folder to Python path
-if SILENT_FACE_DIR not in sys.path:
-    sys.path.insert(0, SILENT_FACE_DIR)
+# How much around the face each model looks at.
+SCALES = (2.7, 4.0)
+SIZE = 80
+LIVE = 1
 
-from src.anti_spoof_predict import AntiSpoofPredict
-from src.data_io.transform import ToTensor
-from src.generate_patches import CropImage
-from src.utility import parse_model_name
-
-model_dir = os.path.join(
-    SILENT_FACE_DIR,
-    "resources",
-    "anti_spoof_models"
-)
-
-MODEL_NAMES = sorted(name for name in os.listdir(model_dir) if name.endswith(".pth"))
-if not MODEL_NAMES:
-    raise RuntimeError(f"No anti-spoof model weights found in {model_dir}")
-
-predictor = AntiSpoofPredict(0)
-image_cropper = CropImage()
-to_tensor = ToTensor()
+box_finder = cv2.dnn.readNetFromCaffe(model_path("face_box.prototxt"), model_path("face_box.caffemodel"))
+sessions = [
+    (scale, onnxruntime.InferenceSession(model_path(f"liveness_{scale:g}.onnx"), providers=["CPUExecutionProvider"]))
+    for scale in SCALES
+]
 lock = threading.Lock()  # the OpenCV detector is not safe across threads
 
 
-def load_model(name):
-    predictor._load_model(os.path.join(model_dir, name))
-    return predictor.model.eval()
+def face_box(image):
+    h, w = image.shape[:2]
+    if w * h >= 192 * 192:
+        ratio = math.sqrt(w / h)
+        image = cv2.resize(image, (int(192 * ratio), int(192 / ratio)))
+    with lock:
+        box_finder.setInput(cv2.dnn.blobFromImage(image, 1, mean=(104, 117, 123)), "data")
+        found = box_finder.forward("detection_out").squeeze()
+    left, top, right, bottom = found[np.argmax(found[:, 2]), 3:7] * (w, h, w, h)
+    return int(left), int(top), int(right - left + 1), int(bottom - top + 1)
 
 
-# Loaded once: reading them from disk for every photo is slow.
-MODELS = [(parse_model_name(name), load_model(name)) for name in MODEL_NAMES]
+def crop(image, box, scale):
+    h, w = image.shape[:2]
+    x, y, box_w, box_h = box
+    scale = min((h - 1) / box_h, (w - 1) / box_w, scale)
+    new_w, new_h = box_w * scale, box_h * scale
+    left, top = x + box_w / 2 - new_w / 2, y + box_h / 2 - new_h / 2
+    right, bottom = left + new_w, top + new_h
+    # Moved back inside the photo, so that the size stays the same.
+    if left < 0:
+        left, right = 0, right - left
+    if top < 0:
+        top, bottom = 0, bottom - top
+    if right > w - 1:
+        left, right = left - (right - w + 1), w - 1
+    if bottom > h - 1:
+        top, bottom = top - (bottom - h + 1), h - 1
+    return cv2.resize(image[int(top) : int(bottom) + 1, int(left) : int(right) + 1], (SIZE, SIZE))
 
 
 def check_liveness(image):
     if image is None or image.size == 0:
         return False
-
-    with lock, torch.no_grad():
-        bbox = predictor.get_bbox(image)
-        prediction = np.zeros((1, 3))
-        for (h_input, w_input, _, scale), model in MODELS:
-            # The upstream Silent-Face example uses the full image for models
-            # whose filename has no scale and crops for scaled models.
-            patch = image_cropper.crop(
-                org_img=image, bbox=bbox, scale=scale, out_w=w_input, out_h=h_input, crop=scale is not None
-            )
-            tensor = to_tensor(patch).unsqueeze(0).to(predictor.device)
-            prediction += torch.softmax(model(tensor), dim=1).cpu().numpy()
-
-    return int(np.argmax(prediction)) == 1
+    box = face_box(image)
+    total = np.zeros(3)
+    for scale, session in sessions:
+        patch = crop(image, box, scale).astype(np.float32).transpose(2, 0, 1)[None]
+        out = session.run(None, {"input": patch})[0][0]
+        e = np.exp(out - out.max())
+        total += e / e.sum()
+    return int(np.argmax(total)) == LIVE

@@ -1,0 +1,4 @@
+{
+  "buildCommand": "python download_models.py",
+  "functions": { "main.py": { "maxDuration": 60 } }
+}

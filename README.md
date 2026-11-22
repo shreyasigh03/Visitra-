@@ -50,6 +50,7 @@ Needs Python 3.11:
 cd ai-service
 python3.11 -m venv .venv
 .venv/bin/pip install -r requirements.txt
+.venv/bin/python download_models.py
 ```
 
 ### Old-data clean-up
@@ -83,16 +84,18 @@ Open http://localhost:5001/api/health. It shows which part is down.
 | --- | --- | --- |
 | Website | https://visitra-vms.vercel.app | `visitra-vms` (folder `.`) |
 | Backend | https://visitra.vercel.app | `visitra` (folder `backend`) |
-| Face service | The campus computer only | None: it is too large for Vercel |
+| Face service | https://ai-service-two-virid.vercel.app | `ai-service` (folder `ai-service`) |
 
-Both projects update themselves when `main` changes. Logins, dashboards, approvals and emails
-work online. Registration and face scan need the face service, so they work only on the campus
-computer. That computer also reads teachers' email answers and does the clean-up.
+All three update themselves when `main` changes. Everything works online
+except two jobs, which need the laptop: reading teachers' email answers, and the clean-up with the
+Excel file.
 
 - The website finds the backend through `VITE_API_URL` in `.env.production`.
 - The backend's settings are in Vercel -> `visitra` -> Settings -> Environment Variables:
   `MONGO_URI`, `JWT_SECRET`, `EMAIL_USER`, `EMAIL_PASS`, `ADMIN_EMAIL`, `ADMIN_PASSWORD`,
   `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `WEB_URL`. Redeploy after a change.
+  `AI_SERVICE_URL` and `AI_SERVICE_KEY` too; the key must be the same in Vercel -> `ai-service`.
+- Online, photos are kept in the database, and `ai-service/download_models.py` gets the face models.
 - MongoDB Atlas -> Network Access must allow `0.0.0.0/0`, because Vercel has no fixed IP address.
 - Use a strong `ADMIN_PASSWORD`: anyone can open the online login page.
 

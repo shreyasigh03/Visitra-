@@ -29,6 +29,8 @@ backend/.env
 .vercel
 
 # Python
+ai-service/models/*.gz
+ai-service/models/*.part
 ai-service/.venv/
 ai-service/venv/
 __pycache__/

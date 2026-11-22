@@ -3,7 +3,7 @@
 const path = require("path");
 require("dotenv").config({ path: path.resolve(__dirname, "..", ".env"), quiet: true });
 
-// Vercel runs the backend online, without the face service, the Excel folder or photos.
+// Vercel runs the backend online, without a disk for photos and the Excel folder.
 const online = Boolean(process.env.VERCEL);
 if (online) process.env.TZ = "Asia/Kolkata"; // its clock is UTC, but "today" is the campus day
 
@@ -42,6 +42,7 @@ module.exports = {
   adminEmail: process.env.ADMIN_EMAIL.trim().toLowerCase(),
   adminPassword: process.env.ADMIN_PASSWORD,
   aiServiceUrl: (process.env.AI_SERVICE_URL || "http://127.0.0.1:8000").replace(/\/$/, ""),
+  aiServiceKey: process.env.AI_SERVICE_KEY || "",
   emailUser: process.env.EMAIL_USER,
   emailPass: process.env.EMAIL_PASS,
   // The owners of VISITRA. Empty turns the super admin login off.
