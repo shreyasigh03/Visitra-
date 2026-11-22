@@ -4,6 +4,7 @@ import { QRCode } from "react-qr-code";
 import Navbar from "./Navbar";
 import Notice from "./Notice";
 import { apiFetch } from "../lib/api";
+import { formatDay } from "../lib/visitors";
 import { downloadPassPdf } from "../lib/passPdf";
 import { loadRegistration, saveRegistration } from "../lib/registration";
 
@@ -89,7 +90,7 @@ const OtpForm = ({ registration, update }) => {
     ["Phone", registration.phone],
     ["To meet", registration.toMeet],
     ...(registration.groupMembers?.length ? [["Group", `${registration.groupMembers.length + 1} people`]] : []),
-    ["Visit", [registration.date, registration.visitTime].filter(Boolean).join(", ")],
+    ["Visit", [formatDay(registration), registration.visitTime].filter(Boolean).join(", ")],
     ["Issued", registration.issuedAt],
   ];
 

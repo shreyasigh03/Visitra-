@@ -5,13 +5,13 @@ const HEADINGS = ["Pass ID", "Name", "Email", "Phone", "To Meet", "Date", "Statu
 
 const Actions = ({ visitor: v, busy, onVerify, onApprove, onReject }) => (
   <>
-    <button type="button" onClick={() => onVerify(v.passId)} className="btn-soft px-3 py-2 text-xs">
+    <button type="button" onClick={() => onVerify(v.passId)} className="btn-soft px-3 text-[13px]">
       Verify
     </button>
-    <button type="button" onClick={() => onApprove(v)} disabled={busy || v.status === "approved"} className="btn-ok px-3 py-2 text-xs">
+    <button type="button" onClick={() => onApprove(v)} disabled={busy || v.status === "approved"} className="btn-ok px-3 text-[13px]">
       Approve
     </button>
-    <button type="button" onClick={() => onReject(v)} disabled={busy || v.status === "rejected"} className="btn-danger px-3 py-2 text-xs">
+    <button type="button" onClick={() => onReject(v)} disabled={busy || v.status === "rejected"} className="btn-danger px-3 text-[13px]">
       Reject
     </button>
   </>
@@ -24,7 +24,7 @@ const VisitorTable = ({ visitors, busyId, onDetails, ...handlers }) => (
       {visitors.map((v) => (
         <li key={v._id} className="clay-sm min-w-0 rounded-[22px] p-4">
           <div className="mb-2 flex items-start justify-between gap-3">
-            <button type="button" onClick={() => onDetails(v)} className="min-w-0 cursor-pointer break-words text-left font-extrabold underline decoration-dotted underline-offset-4">
+            <button type="button" onClick={() => onDetails(v)} className="min-h-10 min-w-0 cursor-pointer break-words text-left font-extrabold underline decoration-dotted underline-offset-4">
               {v.name}
             </button>
             <StatusBadge status={v.status} />
@@ -57,7 +57,7 @@ const VisitorTable = ({ visitors, busyId, onDetails, ...handlers }) => (
             <tr key={v._id} className="transition hover:bg-[var(--surface)]">
               <td className="td-clay font-bold text-[var(--muted)]">{v.passId || "—"}</td>
               <td className="td-clay">
-                <button type="button" onClick={() => onDetails(v)} title="View details" className="cursor-pointer text-left font-extrabold underline decoration-dotted underline-offset-4">
+                <button type="button" onClick={() => onDetails(v)} title="View details" className="min-h-10 cursor-pointer text-left font-extrabold underline decoration-dotted underline-offset-4">
                   {v.name}
                 </button>
               </td>

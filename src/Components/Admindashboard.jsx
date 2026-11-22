@@ -272,9 +272,9 @@ const Admindashboard = () => {
               ["Entry", formatTime(details.entryTime)],
               ["Exit", formatTime(details.exitTime)],
             ].map(([label, value]) => (
-              <div key={label} className={`tile min-w-0 px-3 py-2.5 ${label === "Email" ? "col-span-2" : ""}`}>
+              <div key={label} className={`tile min-w-0 px-3 py-2.5 ${label === "Email" || label === "Name" ? "col-span-2" : ""}`}>
                 <dt className="text-[10.5px] font-extrabold uppercase tracking-wider text-[var(--muted)]">{label}</dt>
-                <dd className="mt-0.5 break-words font-extrabold">{value || "—"}</dd>
+                <dd className={`mt-0.5 break-words font-extrabold ${label === "Status" ? "capitalize" : ""}`}>{value || "—"}</dd>
               </div>
             ))}
           </dl>

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { IoIosArrowDown, IoMdPerson } from "react-icons/io";
+import { IoMdPerson } from "react-icons/io";
 import { MdEmail } from "react-icons/md";
 import { FaPhoneFlip, FaUserGroup } from "react-icons/fa6";
 import Navbar from "./Navbar";
@@ -36,7 +36,7 @@ const Field = ({ label, id, icon: Icon, children }) => (
   </div>
 );
 
-const VisitorRegsiterationPg = () => {
+const VisitorRegistration = () => {
   const [form, setForm] = useState(EMPTY);
   const [photo, setPhoto] = useState(null); // { file, dataUrl }
   const [error, setError] = useState("");
@@ -160,7 +160,7 @@ const VisitorRegsiterationPg = () => {
         </div>
         <ServiceBanner />
 
-        <form onSubmit={handleSubmit} className="grid items-start gap-6 lg:grid-cols-[1.1fr_.9fr]">
+        <form onSubmit={handleSubmit} className="grid items-start gap-6 lg:grid-cols-[1.1fr_.9fr] lg:grid-rows-[auto_1fr]">
           <div className="clay min-w-0 rounded-[28px] p-5 sm:p-8">
             <div className="grid gap-4.5 sm:grid-cols-2">
               <Field label="Name" id="name" icon={IoMdPerson}>
@@ -182,8 +182,8 @@ const VisitorRegsiterationPg = () => {
                   className="input-clay w-full pr-10"
                 />
               </Field>
-              <Field label="Reason" id="reason" icon={IoIosArrowDown}>
-                <select {...bind("reason")} className="input-clay w-full appearance-none pr-10">
+              <Field label="Reason" id="reason">
+                <select {...bind("reason")} className="input-clay w-full">
                   <option value="">Select reason</option>
                   {REASONS.map((r) => (
                     <option key={r}>{r}</option>
@@ -199,8 +199,8 @@ const VisitorRegsiterationPg = () => {
               <Field label="Date of visit" id="date">
                 <input {...bind("date")} type="date" min={today} className="input-clay w-full" />
               </Field>
-              <Field label="Who are you meeting?" id="teacherId" icon={IoIosArrowDown}>
-                <select {...bind("teacherId")} className="input-clay w-full appearance-none pr-10">
+              <Field label="Who are you meeting?" id="teacherId">
+                <select {...bind("teacherId")} className="input-clay w-full">
                   <option value="">{teachers ? "Select a name" : "Loading names…"}</option>
                   {teachers?.map((t) => (
                     <option key={t.id} value={t.id}>{t.department ? `${t.name} (${t.department})` : t.name}</option>
@@ -236,7 +236,7 @@ const VisitorRegsiterationPg = () => {
             )}
 
             <label className="mt-5 flex items-center gap-3 text-sm font-bold">
-              <input type="checkbox" checked={isGroup} onChange={(e) => setIsGroup(e.target.checked)} className="h-5 w-5" />
+              <input type="checkbox" checked={isGroup} onChange={(e) => setIsGroup(e.target.checked)} className="h-5 w-5 shrink-0 accent-[var(--accent)]" />
               I am coming with other people (group visit)
             </label>
             {isGroup && (
@@ -262,17 +262,9 @@ const VisitorRegsiterationPg = () => {
                 <p className="text-[12.5px] text-[var(--muted)]">Only you need a photo and OTP. The whole group enters with your pass.</p>
               </div>
             )}
-
-            {error && <Notice type="error" className="mt-5">{error}</Notice>}
-            <button disabled={submitting} className="btn-primary mt-6 w-full py-3.5 text-[15px]">
-              {submitting ? "Checking your photo…" : "Continue to OTP verification"}
-            </button>
-            <p className="mt-3.5 text-center text-[12.5px] text-[var(--muted)]">
-              You'll receive a one-time password on your email to confirm your identity.
-            </p>
           </div>
 
-          <div className="clay min-w-0 rounded-[28px] p-5 sm:p-7">
+          <div className="clay min-w-0 rounded-[28px] p-5 sm:p-7 lg:col-start-2 lg:row-span-2 lg:row-start-1">
             <div className="mb-3.5 flex items-center justify-between">
               <span className="font-display text-[15px] font-bold">Profile photo</span>
               <span
@@ -306,10 +298,19 @@ const VisitorRegsiterationPg = () => {
               Your photo is used for face-verified entry at the gate and stored with your visit record.
             </p>
           </div>
+          <div className="clay min-w-0 rounded-[28px] p-5 sm:p-8">
+            {error && <Notice type="error" className="mb-4">{error}</Notice>}
+            <button disabled={submitting} className="btn-primary w-full py-3.5 text-[15px]">
+              {submitting ? "Checking your photo…" : "Continue to OTP verification"}
+            </button>
+            <p className="mt-3.5 text-center text-[12.5px] text-[var(--muted)]">
+              You'll receive a one-time password on your email to confirm your identity.
+            </p>
+          </div>
         </form>
       </main>
     </div>
   );
 };
 
-export default VisitorRegsiterationPg;
+export default VisitorRegistration;

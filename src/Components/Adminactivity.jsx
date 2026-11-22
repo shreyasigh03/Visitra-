@@ -96,7 +96,7 @@ const Adminactivity = () => {
               <span className="min-w-0 break-words text-sm">
                 {a.subject && <b>{a.subject}</b>}
                 {a.details && <span className="text-[var(--muted)]"> {a.details}</span>}
-                <span className="text-[13px] text-[var(--muted)]"> · by {a.actor}</span>
+                <span className="text-[13px] text-[var(--muted)]">{a.subject || a.details ? " · by " : "By "}{a.actor}</span>
               </span>
             </li>
           ))}

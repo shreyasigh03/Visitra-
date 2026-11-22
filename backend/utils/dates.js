@@ -11,4 +11,8 @@ function dayFromToday(days) {
 
 const todayLocal = () => dayFromToday(0);
 
-module.exports = { todayLocal, dayFromToday, localDay };
+// "2026-11-24" as "24 Nov 2026".
+const niceDay = (day) =>
+  new Date(day).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric", timeZone: "UTC" });
+
+module.exports = { niceDay, todayLocal, dayFromToday, localDay };

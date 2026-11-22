@@ -1,8 +1,10 @@
 import { useMemo } from "react";
-import { Bar, BarChart, CartesianGrid, Cell, Legend, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-import { reasonGroup, visitDay } from "../lib/visitors";
+import { Bar, BarChart, CartesianGrid, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { REASONS, reasonGroup, visitDay } from "../lib/visitors";
 
-const COLORS = ["#314ca3", "#6485d8", "#f2d36b", "#a9b5d6", "#79b6c9", "#c58fb8"];
+// Each purpose keeps its own color, whatever else is in the chart.
+const PURPOSES = [...REASONS, "Other"];
+const colorOf = (name) => `var(--chart-${PURPOSES.indexOf(name) + 1})`;
 const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 const TOOLTIP = {
   contentStyle: { background: "var(--card)", border: "1px solid var(--line)", borderRadius: 12 },
@@ -18,7 +20,7 @@ const DashboardCharts = ({ visitors }) => {
       const name = reasonGroup(v.reason);
       counts[name] = (counts[name] || 0) + 1;
     }
-    return Object.entries(counts).map(([name, value]) => ({ name, value }));
+    return PURPOSES.filter((name) => counts[name]).map((name) => ({ name, value: counts[name] }));
   }, [visitors]);
 
   const weekdays = useMemo(() => {
@@ -37,17 +39,29 @@ const DashboardCharts = ({ visitors }) => {
         {purposes.length === 0 ? (
           <div className="flex h-[260px] items-center justify-center text-sm text-[var(--muted)]">No visitor data yet</div>
         ) : (
-          <ResponsiveContainer width="100%" height={260}>
-            <PieChart>
-              <Pie data={purposes} dataKey="value" nameKey="name" innerRadius={50} outerRadius={80} paddingAngle={3}>
-                {purposes.map((entry, i) => (
-                  <Cell key={entry.name} fill={COLORS[i % COLORS.length]} />
-                ))}
-              </Pie>
-              <Tooltip {...TOOLTIP} />
-              <Legend verticalAlign="bottom" formatter={(text) => <span style={{ color: "var(--ink)" }}>{text}</span>} />
-            </PieChart>
-          </ResponsiveContainer>
+          <div className="flex flex-col items-center gap-4 sm:flex-row">
+            <div className="h-[200px] w-full sm:w-1/2">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie data={purposes} dataKey="value" nameKey="name" innerRadius={52} outerRadius={84} stroke="var(--card)" strokeWidth={2} startAngle={90} endAngle={-270}>
+                    {purposes.map(({ name }) => (
+                      <Cell key={name} fill={colorOf(name)} />
+                    ))}
+                  </Pie>
+                  <Tooltip {...TOOLTIP} />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+            <ul className="grid w-full grid-cols-2 gap-x-4 gap-y-2 text-sm sm:w-1/2 sm:grid-cols-1">
+              {purposes.map(({ name, value }) => (
+                <li key={name} className="flex items-center gap-2">
+                  <span className="h-3 w-3 shrink-0 rounded-sm" style={{ background: colorOf(name) }} />
+                  <span className="text-[var(--muted)]">{name}</span>
+                  <b className="ml-auto">{value}</b>
+                </li>
+              ))}
+            </ul>
+          </div>
         )}
       </section>
 
@@ -59,7 +73,7 @@ const DashboardCharts = ({ visitors }) => {
             <XAxis dataKey="day" tick={TICK} interval={0} />
             <YAxis allowDecimals={false} tick={TICK} />
             <Tooltip {...TOOLTIP} cursor={{ fill: "var(--accent-soft)" }} />
-            <Bar dataKey="visitors" name="Visitors" fill="var(--accent)" radius={[6, 6, 0, 0]} />
+            <Bar dataKey="visitors" name="Visitors" fill="var(--accent)" radius={[4, 4, 0, 0]} maxBarSize={36} />
           </BarChart>
         </ResponsiveContainer>
       </section>

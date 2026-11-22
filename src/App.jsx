@@ -5,7 +5,7 @@ import Feature from "./Components/Feature";
 import Howitworks from "./Components/Howitworks";
 import ProtectedRoute from "./Components/ProtectedRoute";
 
-const VisitorRegsiterationPg = lazy(() => import("./Components/VisitorRegsiterationPg"));
+const VisitorRegistration = lazy(() => import("./Components/VisitorRegistration"));
 const Otpverification = lazy(() => import("./Components/Otpverification"));
 const Facerecognition = lazy(() => import("./Components/Facerecognition"));
 const AdminLogin = lazy(() => import("./Components/AdminLogin"));
@@ -48,7 +48,7 @@ const router = createBrowserRouter([
       { path: "/", element: <Landingpg /> },
       { path: "/Feature", element: <Feature /> },
       { path: "/Works", element: <Howitworks /> },
-      { path: "/Visitor", element: <VisitorRegsiterationPg /> },
+      { path: "/Visitor", element: <VisitorRegistration /> },
       { path: "/otp", element: <Otpverification /> },
       { path: "/Facerecognition", element: <Facerecognition /> },
       { path: "/Organizations", element: <Organizations /> },

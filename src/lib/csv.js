@@ -22,7 +22,7 @@ function cell(value) {
   return `"${text.replace(/"/g, '""')}"`;
 }
 
-export function toCsv(visitors) {
+function toCsv(visitors) {
   const rows = [COLUMNS.map(([title]) => title), ...visitors.map((v) => COLUMNS.map(([, get]) => get(v)))];
   return rows.map((row) => row.map(cell).join(",")).join("\r\n");
 }

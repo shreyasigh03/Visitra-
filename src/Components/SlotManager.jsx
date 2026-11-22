@@ -85,12 +85,12 @@ const SlotManager = ({ api, auth }) => {
             {slots.filter((s) => s.date === date).map((s) => (
               <li
                 key={s.id}
-                className="flex items-center gap-2 rounded-[14px] px-3 py-2 text-[13px] font-bold"
+                className="flex min-h-10 items-center rounded-[14px] pl-3 text-sm font-bold"
                 style={s.booked ? { background: "var(--accent-soft)", color: "var(--accent)" } : { background: "var(--ok-bg)", color: "var(--ok-fg)" }}
               >
                 {s.time}
-                {s.booked ? " booked" : (
-                  <button type="button" disabled={busy} aria-label={`Remove ${s.time}`} onClick={() => remove(s.id)} className="cursor-pointer px-1">✕</button>
+                {s.booked ? <span className="px-3 font-semibold">booked</span> : (
+                  <button type="button" disabled={busy} aria-label={`Remove ${s.time}`} onClick={() => remove(s.id)} className="h-10 w-10 cursor-pointer">✕</button>
                 )}
               </li>
             ))}

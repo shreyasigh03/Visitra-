@@ -19,8 +19,8 @@ const NavShell = ({ home, links, inlineFrom = "md", children }) => {
   return (
     <header className="sticky top-0 z-50 px-4 py-3.5 sm:px-8">
       <nav className="glass relative flex flex-wrap items-center justify-between gap-x-4 rounded-[20px] px-4 py-2.5">
-        <Link to={home} aria-label="VISITRA home" className="flex items-center">
-          <img src={logo} alt="VISITRA" className="h-8 w-auto" />
+        <Link to={home} aria-label="VISITRA home" className="flex min-h-11 items-center">
+          <img src={logo} alt="VISITRA" className="h-8 w-auto dark:brightness-0 dark:invert" />
         </Link>
 
         <button

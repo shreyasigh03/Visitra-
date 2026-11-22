@@ -4,7 +4,7 @@ const Visitor = require("../models/Visitor");
 const { forEachOrg } = require("./organizations");
 const { findBlacklisted } = require("./blacklist");
 const { logActivity } = require("./activity");
-const { todayLocal, localDay } = require("../utils/dates");
+const { todayLocal, localDay, niceDay } = require("../utils/dates");
 const HttpError = require("../utils/httpError");
 
 const HOUR_MS = 60 * 60 * 1000;
@@ -36,8 +36,8 @@ async function checkVisitor(v) {
   const day = visitDay(v);
   const today = todayLocal();
   if (!day) return deny("no-date", "This pass has no valid visit date.");
-  if (day < today) return deny("expired", `This pass expired. It was for ${day}.`);
-  if (day > today) return deny("early", `This pass is for ${day}, not today.`);
+  if (day < today) return deny("expired", `This pass expired. It was for ${niceDay(day)}.`);
+  if (day > today) return deny("early", `This pass is for ${niceDay(day)}, not today.`);
   return { allowed: true, action: "entry", code: "entry", message: "Pass is valid for today." };
 }
 
