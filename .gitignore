@@ -39,3 +39,12 @@ backend/upload/
 
 # Environment files
 .env
+
+# Local npm cache
+backend/.npm-cache/
+
+# Excel files of past visitors (personal data)
+backend/archive/
+
+# Website build for the phone demo
+demo-dist/

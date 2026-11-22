@@ -1,430 +1,315 @@
-const sendEmail = require("../utils/sendEmail");
+const crypto = require("crypto");
+const fs = require("fs/promises");
+const path = require("path");
 const express = require("express");
-const upload=require("../middleware/upload");
+const { isValidObjectId, Types } = require("mongoose");
 
-//router server hai idhr
-const router = express.Router();
 const Visitor = require("../models/Visitor");
 const Otp = require("../models/Otp");
+const Teacher = require("../models/Teacher");
+const upload = require("../middleware/upload");
+const { requireAdmin } = require("../middleware/auth");
+const { registerLimiter, sendOtpLimiter, verifyOtpLimiter } = require("../middleware/rateLimits");
+const { generateEmbedding, findBestMatch } = require("../utils/faceService");
+const { notifyTeacher } = require("../services/teacherNotify");
+const { localDay, todayLocal } = require("../utils/dates");
+const { confirmSlot, freeSlots, holdSlot, releaseSlots } = require("../services/slots");
+const { logActivity } = require("../services/activity");
+const { findBlacklisted } = require("../services/blacklist");
+const { checkVisitor, isInside, isValidToday, logDenied, recordScan } = require("../services/gate");
+const sendEmail = require("../utils/sendEmail");
+const { otpEmail, approvedEmail, rejectedEmail } = require("../utils/emailTemplates");
+const HttpError = require("../utils/httpError");
 
-const axios = require("axios");
-const path = require("path");
+const router = express.Router();
 
+const UPLOAD_DIR = path.resolve(__dirname, "..", "upload");
+const OTP_VALID_MINUTES = 5;
+const OTP_RESEND_SECONDS = 60;
+const OTP_MAX_ATTEMPTS = 5;
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const PHONE_RE = /^\d{10}$/;
+const MAX_REASON = 100;
+const MAX_GROUP = 50; // people coming with the visitor
 
-
-
-
-// Register visitor
-router.post("/register",upload.single("photo"), async (req, res) => {
-  try {
-    
-    //check file ari h ya nhi ari
-    console.log(req.body);
-    console.log(req.file);
-
-
-      // 👇 YAHAN ye code likhna hai
-    const imagePath = path.resolve(req.file.path);
-
-    //axios return krta h output object form mai
-    const response = await axios.post(
-      "http://127.0.0.1:8000/generate-embedding",
-      {
-        image_path: imagePath
-      }
-    );
-   console.log(response.data);
-    //jo hmne photo di h regiter k tym agr usme face hi nhi h toh no face detect error aaeag or database m save hi nhi hgi
-    if (!response.data.success) {
-    return res.status(400).json({
-        success: false,
-        
-        message: response.data.message
-    });
+// Only accept plain id strings, never query objects such as { "$ne": null }.
+function readVisitorId(body) {
+  const { visitorId } = body;
+  if (typeof visitorId !== "string" || !isValidObjectId(visitorId)) {
+    throw new HttpError(400, "Registration not found. Please register again.");
+  }
+  return visitorId;
 }
 
-    
+const hashOtp = (otp) => crypto.createHash("sha256").update(otp).digest("hex");
 
-    // Ab MongoDB me save karna
-    const visitor = new Visitor({
-      ...req.body,
-      
-      photo: req.file.path,
-      faceEncoding: response.data.embedding
+async function generatePassId() {
+  for (let i = 0; i < 10; i++) {
+    const passId = String(crypto.randomInt(100000, 1000000));
+    if (!(await Visitor.exists({ passId }))) return passId;
+  }
+  throw new HttpError(500, "Could not generate a pass ID. Please try again.");
+}
+
+async function savePhoto(buffer) {
+  await fs.mkdir(UPLOAD_DIR, { recursive: true });
+  const filePath = path.join(UPLOAD_DIR, `${Date.now()}-${crypto.randomUUID()}.jpg`);
+  await fs.writeFile(filePath, buffer);
+  return filePath;
+}
+
+// Creates a fresh OTP for the visitor and emails it. Throws if the email fails.
+async function issueOtp(visitor) {
+  const otp = String(crypto.randomInt(1000, 10000));
+  await Otp.deleteMany({ visitorId: visitor._id });
+  await Otp.create({
+    visitorId: visitor._id,
+    otpHash: hashOtp(otp),
+    expiresAt: new Date(Date.now() + OTP_VALID_MINUTES * 60_000),
+  });
+  await sendEmail({ to: visitor.email, ...otpEmail({ name: visitor.name, otp, minutes: OTP_VALID_MINUTES }) });
+}
+
+// The host is a teacher from the list, or a typed name that the admin approves.
+async function readHost(body) {
+  const id = typeof body.teacherId === "string" ? body.teacherId : "";
+  if (!id) return { toMeet: typeof body.toMeet === "string" ? body.toMeet.trim() : "" };
+  const teacher = isValidObjectId(id) ? await Teacher.findOne({ _id: id, active: true }).lean() : null;
+  if (!teacher) throw new HttpError(400, "That teacher is no longer available. Please choose again.");
+  return { teacherId: teacher._id, toMeet: teacher.name };
+}
+
+// Names of the people coming along, one form field holding a JSON list.
+function readGroup(body) {
+  if (!body.groupMembers) return [];
+  let names;
+  try {
+    names = JSON.parse(body.groupMembers);
+  } catch {
+    names = null;
+  }
+  if (!Array.isArray(names) || names.some((n) => typeof n !== "string")) throw new HttpError(400, "The group list is not valid.");
+  const clean = names.map((n) => n.trim().slice(0, 60)).filter(Boolean);
+  if (clean.length > MAX_GROUP) throw new HttpError(400, `A group can have up to ${MAX_GROUP + 1} people.`);
+  return clean;
+}
+
+function readRegistration(body, host) {
+  const pick = (key) => (typeof body[key] === "string" ? body[key].trim() : "");
+  const data = {
+    name: pick("name"),
+    email: pick("email").toLowerCase(),
+    phone: pick("phone"),
+    reason: pick("reason"),
+    ...host,
+    date: pick("date"),
+    groupMembers: readGroup(body),
+  };
+
+  if (!data.name || !data.email || !data.phone || !data.reason || !data.toMeet || !data.date) {
+    throw new HttpError(400, "Please fill in all the fields.");
+  }
+  if (!EMAIL_RE.test(data.email)) throw new HttpError(400, "Please enter a valid email address.");
+  if (!PHONE_RE.test(data.phone)) throw new HttpError(400, "Please enter a 10-digit phone number.");
+  if (data.reason.length > MAX_REASON) throw new HttpError(400, `Please keep the reason under ${MAX_REASON} characters.`);
+  if (Number.isNaN(Date.parse(data.date))) throw new HttpError(400, "Please choose a valid visit date.");
+  return data;
+}
+
+// When the teacher has free times that day, the visitor must take one of them.
+async function bookSlot(body, data, visitorId) {
+  if (!data.teacherId) return null;
+  const { hasSlots } = await freeSlots(data.teacherId, data.date);
+  if (!hasSlots) return null;
+  if (typeof body.slotId !== "string" || !isValidObjectId(body.slotId)) throw new HttpError(400, "Please choose a time.");
+  return holdSlot({ slotId: body.slotId, teacherId: data.teacherId, date: data.date, visitorId });
+}
+
+// ---------- Public (visitor + gate) ----------
+
+router.post("/register", registerLimiter, upload.single("photo"), async (req, res) => {
+  const data = readRegistration(req.body, await readHost(req.body));
+  if (!req.file) throw new HttpError(400, "Please capture a face photo before registering.");
+  if (await findBlacklisted(data)) {
+    logActivity({ actor: "Registration", type: "blacklist-alert", subject: data.name, details: "Blacklisted person tried to register" });
+    throw new HttpError(403, "Registration is not available for you. Please contact the reception.");
+  }
+
+  const face = await generateEmbedding(req.file.buffer);
+  if (!face.success) throw new HttpError(400, face.message || "Face could not be processed.");
+
+  const _id = new Types.ObjectId();
+  const slot = await bookSlot(req.body, data, _id);
+  let visitor;
+  try {
+    visitor = await Visitor.create({
+      _id,
+      ...data,
+      visitTime: slot?.time,
+      passId: await generatePassId(),
+      photo: await savePhoto(req.file.buffer),
+      faceEncoding: face.embedding,
     });
+  } catch (err) {
+    await releaseSlots(_id);
+    throw err;
+  }
 
+  logActivity({ actor: "Visitor", type: "registered", visitor, details: `To meet ${visitor.toMeet}` });
 
-   
+  let otpSent = true;
+  try {
+    await issueOtp(visitor);
+  } catch (err) {
+    otpSent = false;
+    console.error("[otp] initial OTP email failed:", err.message);
+  }
 
-    await visitor.save();
-    console.log("after save");
+  res.status(201).json({
+    visitorId: visitor._id,
+    passId: visitor.passId,
+    visitTime: visitor.visitTime,
+    otpSent,
+    resendAfter: OTP_RESEND_SECONDS,
+    message: otpSent ? "OTP sent to your email." : "Registered, but the OTP email failed. Tap 'Resend OTP'.",
+  });
+});
 
-    res.status(200).json({ message: "Details received. Please verify OTP." });
-  } catch (error) {
-    console.log("Error while saving visitor:", error);
-    res.status(500).json({ error: "Error saving visitor" });
+router.post("/send-otp", sendOtpLimiter, async (req, res) => {
+  const visitor = await Visitor.findById(readVisitorId(req.body));
+  if (!visitor) throw new HttpError(404, "Registration not found. Please register again.");
+  if (visitor.status !== "pending") throw new HttpError(400, "This registration is already verified.");
+
+  const last = await Otp.findOne({ visitorId: visitor._id });
+  const waitMs = last ? last.createdAt.getTime() + OTP_RESEND_SECONDS * 1000 - Date.now() : 0;
+  if (waitMs > 0) throw new HttpError(429, `Please wait ${Math.ceil(waitMs / 1000)}s before requesting a new OTP.`);
+
+  await issueOtp(visitor);
+  res.json({ message: "OTP sent to your email.", resendAfter: OTP_RESEND_SECONDS });
+});
+
+router.post("/verify-otp", verifyOtpLimiter, async (req, res) => {
+  const visitorId = readVisitorId(req.body);
+  const otp = String(req.body.otp ?? "").trim();
+
+  const record = await Otp.findOne({ visitorId });
+  if (!record || record.expiresAt < new Date()) {
+    return res.status(400).json({ status: "expired", message: "OTP expired. Please tap 'Resend OTP'." });
+  }
+  if (record.attempts >= OTP_MAX_ATTEMPTS) {
+    return res.status(429).json({ status: "locked", message: "Too many wrong attempts. Please resend a new OTP." });
+  }
+  if (record.otpHash !== hashOtp(otp)) {
+    record.attempts += 1;
+    await record.save();
+    const left = OTP_MAX_ATTEMPTS - record.attempts;
+    return res.status(400).json({ status: "invalid", message: `Wrong OTP. ${left} attempt${left === 1 ? "" : "s"} left.` });
+  }
+
+  await Otp.deleteMany({ visitorId });
+  const visitor = await Visitor.findOneAndUpdate(
+    { _id: visitorId, status: "pending" },
+    { status: "verified" },
+    { returnDocument: "after" },
+  );
+  // The hold may have run out while the visitor waited.
+  const lostSlot = Boolean(visitor?.visitTime) && !(await confirmSlot(visitor._id));
+  if (lostSlot) {
+    await Visitor.updateOne({ _id: visitor._id }, { $unset: { visitTime: "" } });
+    visitor.visitTime = undefined;
+  }
+  res.json({
+    status: "verified",
+    visitTime: visitor?.visitTime,
+    message: lostSlot ? "OTP verified, but your time was taken by someone else. The teacher will tell you a new time." : "OTP verified successfully.",
+  });
+
+  if (visitor) logActivity({ actor: "Visitor", type: "verified", visitor });
+
+  // Only on the first verification, so the teacher is told once.
+  if (visitor?.teacherId) {
+    notifyTeacher(visitor).catch((err) => console.error("[notify] teacher:", err.message));
   }
 });
 
-
-
-// router.post("/verify-face", upload.single("img"),async(req,res)=>{
-//   const imgpath=path.resolve(req.file.path);
-//   try{
-//     const response=await axios.post("http://127.0.0.1:8000/generate-embedding", {
-//       image_path: imgpath
-//     });
-//     //agr face hi detect nhi hua toh --success fail aya toh
-
-//     if (!response.data.success) {
-//     return res.status(400).json({
-//         success: false,
-//         message: response.data.message
-//     });
-// }
-
-
-//     const visitors=await Visitor.find({
-//       status:"approved",
-//     },{
-//       faceEncoding:1
-//     })
-//     const liveEmbedding=response.data.embedding;
-
-//     const compare= await axios.post("http://127.0.0.1:8000/compare-embeding",{
-//       //json format m data jaega
-//       visitors,
-//       liveEmbedding
-
-//     });
-//     if(!compare.data.success){
-//       //mtlb mathc nhi hua face
-//       return res.json({
-//         "success":false,
-//         "message":"Face not Recognized"
-//       })
-//     }
-//     //match hgya toh visitor ki details bhj do 
-//     const visitor=await Visitor.findById(compare.data.visitor_id);
-//      //agr bychnace visitor dlt hgya toh 
-//      if(!visitor){
-//       return res.json({
-//         "status":false,
-//         "message":"Visitor not found"
-
-//       })
-//     }
-
-//     Date().now
-
-//     return res.json({
-//       "success":true,
-//       "similarity":compare.data.similarity,
-//       "visitor": visitor,
-//       "message":"Match Found"
-//     })
-
-   
-   
-//   } catch (error) {
-//     console.error("Error while verifying face:", error);
-//     res.status(500).json({ error: "Error verifying face" });
-//   }
-// });
-
-
-
-
+// Gate kiosk: identify a face and log entry / exit.
 router.post("/verify-face", upload.single("img"), async (req, res) => {
-  const imgpath = path.resolve(req.file.path);
-  try {
-    const response = await axios.post("http://127.0.0.1:8000/generate-embedding", {
-      image_path: imgpath,
-    });
+  if (!req.file) throw new HttpError(400, "No image received from the camera.");
 
-    // agr face hi detect nhi hua toh --success fail aya toh
-    if (!response.data.success) {
-      return res.status(400).json({
-        success: false,
-        message: response.data.message,
-      });
-    }
+  const face = await generateEmbedding(req.file.buffer);
+  if (!face.success) throw new HttpError(400, face.message || "Face could not be processed.");
 
-    // NOTE: yaha status:"approved" wala filter hata diya hai
-    // kyunki humein har visitor (approved/pending/rejected) ko
-    // pehchan-ke uski entry/exit log karni hai, sirf approved wale ko nhi
-   // yaha maine editing ki hai mai shreya hu.. thi*
-   const visitors = await Visitor.find(
-  {
-    faceEncoding: { $exists: true, $ne: [] }
-  },
-  {
-    faceEncoding: 1,
+  const candidates = await Visitor.find({ "faceEncoding.0": { $exists: true } })
+    .select("+faceEncoding")
+    .lean();
+  if (!candidates.length) return res.json({ success: false, message: "No registered visitors yet." });
+
+  // One person can have many registrations. Try who came in today, then who may come in
+  // today, then visits left open earlier, then the rest (to say why entry is refused).
+  const rank = (v) => {
+    if (isInside(v)) return localDay(v.entryTime) === todayLocal() ? 0 : 2;
+    return isValidToday(v) ? 1 : 3;
+  };
+  let match = { success: false };
+  for (const group of [0, 1, 2, 3].map((n) => candidates.filter((v) => rank(v) === n))) {
+    if (group.length) match = await findBestMatch(face.embedding, group);
+    if (match.success) break;
   }
-   );
-    const liveEmbedding = response.data.embedding;
+  if (!match.success) return res.json({ success: false, message: "Face not recognized." });
 
-    const compare = await axios.post("http://127.0.0.1:8000/compare-embeding", {
-      visitors,
-      liveEmbedding,
-    });
+  const visitor = await Visitor.findById(match.visitor_id).select("-photo");
+  if (!visitor) return res.json({ success: false, message: "Visitor not found." });
 
-    if (!compare.data.success) {
-      // mtlb match nhi hua face
-      return res.json({
-        success: false,
-        message: "Face not Recognized",
-      });
-    }
-
-    // match hgya toh visitor ki details nikal lo
-    let visitor = await Visitor.findById(compare.data.visitor_id);
-
-    // agr bychance visitor delete hgya toh
-    if (!visitor) {
-      return res.json({
-        success: false,
-        message: "Visitor not found",
-      });
-    }
-
-    // ---- ENTRY / EXIT TIME LOGIC ----
-    const now = new Date();
-    let entryStatus = ""; // "entry" ya "exit" — frontend ko batane ke liye kya record hua
-
-    if (!visitor.entryTime) {
-      // pehli baar scan hua -> entry time set karo
-      visitor.entryTime = now;
-      entryStatus = "entry";
-    } else if (visitor.entryTime && !visitor.exitTime) {
-      // pehle se entry hai, exit nhi -> ye scan exit maana jaega
-      visitor.exitTime = now;
-      entryStatus = "exit";
-    } else {
-      // pehle entry+exit dono ho chuke the -> naya visit cycle shuru,
-      // purani entry/exit reset karke fresh entry maano
-      visitor.entryTime = now;
-      visitor.exitTime = null;
-      entryStatus = "entry";
-    }
-
-    await visitor.save();
-
-    // visitor "approved" hai ya nhi, wo alag se batao
-    // (entry/exit record ho jaegi chahe approved ho ya na ho)
-    const authorized = visitor.status === "approved";
-
-    let finalSuccess;
-    let finalMessage;
-
-    if(authorized){
-      finalSuccess=true;
-      finalMessage="Entry Granted - Authorized Visitor";
-
-
-    }
-    else{
-      finalSuccess=false;
-      finalMessage=" Not Authorized - Entry not Granted ";
-
-    }
-
-    return res.json({
-      success:finalSuccess,
-      similarity: compare.data.similarity,
-      visitor,
-      entryStatus, // "entry" | "exit"
-      
-     message:finalMessage
-    });
-  } catch (error) {
-    console.error("Error while verifying face:", error);
-    res.status(500).json({ error: "Error verifying face" });
+  const check = await checkVisitor(visitor);
+  const reply = (success, extra) => res.json({ success, similarity: match.similarity, visitor, ...extra });
+  if (!check.allowed) {
+    logDenied(visitor, check, "Face scan");
+    // A public screen must not show anyone the details behind a blacklist entry.
+    if (check.code === "blacklisted") return res.json({ success: false, message: check.message });
+    return reply(false, { message: check.message });
   }
+  if (!(await recordScan(visitor, check.action, "Face scan"))) throw new HttpError(409, "This visit just changed. Please scan again.");
+  return reply(true, {
+    entryStatus: check.action,
+    message: check.action === "exit" ? "Goodbye! Exit recorded." : "Entry granted — authorized visitor.",
+  });
 });
 
+// ---------- Admin only ----------
 
+router.get("/all", requireAdmin, async (req, res) => {
+  const visitors = await Visitor.find().select("-photo").sort({ createdAt: -1 }).lean();
+  res.json(visitors);
+});
 
+router.put("/update/:id", requireAdmin, async (req, res) => {
+  const { status, message } = req.body;
+  if (!["approved", "rejected"].includes(status)) throw new HttpError(400, "Status must be approved or rejected.");
 
-
-//admin wale pg p sari details idhr se fecth hri hai 
-router.get("/all", async (req, res) => {
-  try {
-    const visitors = await Visitor.find();
-    res.json(visitors);
-  } catch (err) {
-    res.status(500).json({ message: "Error fetching visitors" });
+  const update = (filter, set) =>
+    Visitor.findOneAndUpdate({ _id: req.params.id, ...filter }, { $set: set }, { returnDocument: "after" }).select("-photo");
+  // Before a first approval, a recorded "entry" can only be a refused scan at the gate.
+  let visitor = null;
+  if (status === "approved") {
+    visitor = await update({ status: { $in: ["pending", "verified"] } }, { status, entryTime: null, exitTime: null });
   }
+  visitor ??= await update({}, { status });
+  if (!visitor) throw new HttpError(404, "Visitor not found.");
+  if (status === "rejected") await releaseSlots(visitor._id);
+  logActivity({ actor: "Admin", type: status, visitor });
+
+  res.json(visitor);
+
+  // Email after responding so the dashboard doesn't wait on Gmail.
+  const email = status === "approved" ? approvedEmail(visitor) : rejectedEmail(visitor, message);
+  sendEmail({ to: visitor.email, ...email }).catch((err) =>
+    console.error(`[email] ${status} email to visitor ${visitor._id} failed:`, err.message),
+  );
 });
 
-
-//jb visitor data bhja toh admin k opss data aaya usne fir jb approve p click kia toh api cakll hui usne database se us visitor ka data fetch kia fir status change kia res bhja frontend s data chnge hua 
-router.put("/update/:id", async (req, res) => {
-  try {
-    const { status, message } = req.body;
-
-    const updatedVisitor = await Visitor.findByIdAndUpdate(
-      req.params.id,
-      { status },
-      { new: true }
-    );
-
-    //  ab agr statsu approve hgya toh email jaegi 
-    //y format h email ka 
-    if (status === "approved" && updatedVisitor && updatedVisitor.email) {
-      try {
-        await sendEmail(
-          updatedVisitor.email,
-          `
-<div style="font-family: Arial; padding: 10px;">
-
-<img src="https://github.com/vanshika-0/visitor-management/raw/main/visitra_logo.png" style="height:50px; margin-bottom:10px;" />
-
-<h3>Hello ${updatedVisitor.name || "User"}</h3>
-
-<p>Your visit request has been <b>APPROVED</b>.</p>
-
-<p><b>Host:</b> ${updatedVisitor.toMeet || "-"}</p>
-<p><b>Date:</b> ${updatedVisitor.date || "-"}</p>
-<p><b>Pass ID:</b> ${updatedVisitor.passId || "-"}</p>
-
-<br/>
-
-<p>Please carry your ID during the visit.</p>
-
-<p><b>VISITRA Team</b></p>
-
-</div>
-          `
-        );
-      } catch (emailErr) {
-        console.log("Email error:", emailErr);
-      }
-    }
-
-    // agr admin n reject krdi toh email jaegi rejectyed wali 
-    if (status === "rejected" && updatedVisitor && updatedVisitor.email) {
-      try {
-        await sendEmail(
-          updatedVisitor.email,
-          `
-<div style="font-family: Arial; padding: 10px;">
-
-<img src="https://github.com/vanshika-0/visitor-management/raw/main/visitra_logo.png" style="height:50px; margin-bottom:10px;" />
-
-<h3>Hello ${updatedVisitor.name || "User"}</h3>
-
-<p>Your visit request has been <b>REJECTED</b>.</p>
-
-<p><b>Reason:</b> ${message || "Not specified"}</p>
-
-<p><b>Host:</b> ${updatedVisitor.toMeet || "-"}</p>
-<p><b>Date:</b> ${updatedVisitor.date || "-"}</p>
-
-<br/>
-
-<p>For any queries, reply to this email.</p>
-
-<p><b>VISITRA Team</b></p>
-
-</div>
-          `
-        );
-      } catch (emailErr) {
-        console.log("Reject email error:", emailErr);
-      }
-    }
-
-    res.json(updatedVisitor);
-  } catch (err) {
-    res.status(500).json({ message: "Error updating status" });
-  }
+router.get("/verify/:passId", requireAdmin, async (req, res) => {
+  const visitor = await Visitor.findOne({ passId: req.params.passId }).select("-photo").lean();
+  res.json(visitor ? { status: "valid", visitor } : { status: "invalid" });
 });
 
-//admin pe verify p click krege toh 
-router.get("/verify/:passId", async (req, res) => {
-  try {
-    const visitor = await Visitor.findOne({ passId: req.params.passId });
-
-    if (!visitor) {
-      return res.json({ status: "invalid" });
-    }
-
-    return res.json({ status: "valid", visitor });
-  } catch (err) {
-    res.status(500).json({ status: "error" });
-  }
-});
-
-//otp wala function 
-router.post("/send-otp", async (req, res) => {
-  try {
-    const { email } = req.body;
-
-    const otp = Math.floor(1000 + Math.random() * 9000).toString();
-
-    // delete old OTP if exists
-    await Otp.deleteMany({ email });
-
-    // // store new OTP in DB
-    // await Otp.create({
-    //   email,
-    //   otp,
-    //   expiresAt: new Date(Date.now() + 1 * 60 * 1000)
-    // });
-
- const newOtp = new Otp({
-  email,
-  otp,
-  expiresAt: new Date(Date.now() + 1 * 60 * 1000),
-});
-
-await newOtp.save();
-
-    await sendEmail(email, otp);
-
-    res.json({ message: "OTP sent successfully" });
-  } catch (error) {
-    res.status(500).json({ message: "Error sending OTP" });
-  }
-});
-
-
-//verify
-router.post("/verify-otp", async (req, res) => {
-  try {
-    const { email, otp } = req.body;
-
-    const record = await Otp.findOne({ email });
-
-    if (!record) {
-      return res.json({ status: "invalid" });
-    }
-
-    if (Date.now() > record.expiresAt) {
-      await Otp.deleteMany({ email });
-      await Visitor.findOneAndUpdate(
-        {email},
-        {status:"verified"
-        })
-
-      return res.json({ status: "expired" });
-    }
-
-    if (record.otp === otp) {
-      await Otp.deleteMany({ email });
-      
-      await Visitor.findOneAndUpdate(
-        {email},
-        {status:"verified"
-        })
-
-      return res.json({ status: "verified" });
-    } else {
-      return res.json({ status: "invalid OTP" });
-    }
-  } catch (error) {
-    res.status(500).json({ status: "error" });
-  }
-});
 module.exports = router;

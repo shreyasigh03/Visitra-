@@ -1,6 +1,7 @@
-import React from 'react'
 import Navbar from './Navbar'
-import { NavLink } from 'react-router-dom'
+import { Link } from 'react-router-dom'
+import { QRCode } from 'react-qr-code'
+import { getOrg } from '../lib/org'
 
 const Landingpg = () => {
   return (
@@ -17,7 +18,7 @@ const Landingpg = () => {
         <div style={{ animation: "fadeUp .6s ease both" }}>
           <div className="glass mb-6 inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 text-[13px] font-bold text-[var(--muted)]">
             <span className="h-2 w-2 rounded-full bg-[#3FBF7F]" />
-            Enterprise visitor management
+            {getOrg().name}
           </div>
           <h1 className="font-display mb-4 text-4xl font-extrabold leading-[1.06] tracking-tight sm:text-5xl lg:text-6xl" style={{ textWrap: "pretty" }}>
             Smart &amp; secure visitor management
@@ -26,15 +27,11 @@ const Landingpg = () => {
             Digitize visitor entry, strengthen security, and manage records effortlessly — from
             registration and OTP verification to face-verified entry.
           </p>
-          <div className="flex flex-wrap gap-3.5">
-            <NavLink to="/Visitor">
-              <button className="btn-primary px-6 py-3.5 text-[15px]">Register as visitor</button>
-            </NavLink>
-            <NavLink to="/AdminLogin">
-              <button className="clay-sm cursor-pointer rounded-[18px] px-6 py-3.5 text-[15px] font-extrabold text-[var(--ink)] transition hover:-translate-y-0.5">
-                Login as admin
-              </button>
-            </NavLink>
+          <div className="grid gap-3.5 sm:max-w-[440px] sm:grid-cols-2">
+            <Link to="/Visitor" className="btn-primary px-6 py-3.5 text-[15px] text-center">Register as visitor</Link>
+            <Link to="/TeacherLogin" className="clay-sm cursor-pointer rounded-[18px] px-6 py-3.5 text-[15px] font-extrabold text-[var(--ink)] transition hover:-translate-y-0.5 text-center">Login as teacher</Link>
+            <Link to="/GuardLogin" className="clay-sm cursor-pointer rounded-[18px] px-6 py-3.5 text-[15px] font-extrabold text-[var(--ink)] transition hover:-translate-y-0.5 text-center">Login as guard</Link>
+            <Link to="/AdminLogin" className="clay-sm cursor-pointer rounded-[18px] px-6 py-3.5 text-[15px] font-extrabold text-[var(--ink)] transition hover:-translate-y-0.5 text-center">Login as admin</Link>
           </div>
         </div>
 
@@ -60,12 +57,11 @@ const Landingpg = () => {
               </div>
               <div className="tile px-3 py-2.5">
                 <div className="text-[11px] font-bold tracking-wider text-[var(--muted)]">DATE</div>
-                <div className="mt-0.5 text-[15px] font-extrabold">19 Jul 2026</div>
+                <div className="mt-0.5 text-[15px] font-extrabold">Today</div>
               </div>
             </div>
             <div className="tile flex justify-center rounded-[18px] p-3.5">
-              <div className="h-24 w-24 rounded-lg opacity-85"
-                style={{ background: "repeating-conic-gradient(var(--ink) 0% 25%,transparent 0% 50%) 0 0/12px 12px" }} />
+              <QRCode value="481264" size={104} className="rounded-lg bg-white p-2" />
             </div>
           </div>
         </div>

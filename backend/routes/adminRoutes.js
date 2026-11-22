@@ -1,48 +1,67 @@
 const express = require("express");
+const config = require("../config/env");
+const { signAdminToken, requireAdmin } = require("../middleware/auth");
+const { previewCleanup, runCleanup } = require("../services/retention");
+const { searchArchive } = require("../services/archive");
+const { logActivity } = require("../services/activity");
+const OrgAdmin = require("../models/OrgAdmin");
+const { requireActiveOrg } = require("../services/organizations");
+const { HOME_ORG, setOrg } = require("../services/tenant");
+const { checkPassword, sameSecret } = require("../utils/password");
+const adminSecurityRoutes = require("./adminSecurityRoutes");
+const adminTeacherRoutes = require("./adminTeacherRoutes");
+const HttpError = require("../utils/httpError");
+
 const router = express.Router();
-const Admin = require("../models/Admin");
 
-//admin login wala logic hai
 router.post("/login", async (req, res) => {
-  const adminEmail="admin@gmail.com";
-  const adminPassword="1234";
-  try {
-    let { email, password } = req.body;
-    console.log("admin api hit successfully");
+  const email = String(req.body.email ?? "").trim().toLowerCase();
+  const password = String(req.body.password ?? "");
 
-    // clean input
-    email = email?.trim().toLowerCase();
-    password = password?.toString().trim();
-
-    // console.log("LOGIN ATTEMPT:", email, password);
-    // const allAdmins = await Admin.find({});
-    // console.log("ALL ADMINS IN DB:", allAdmins);
-
-    // const admin = await Admin.findOne({
-    //   email: email,
-    //   password: password
-    // });
-
-    // console.log("DB RESULT:", admin);
-    if(email==adminEmail && password==adminPassword){
-      return res.json({status:"success"});
+  let token = "";
+  if (sameSecret(email, config.adminEmail) & sameSecret(password, config.adminPassword)) {
+    setOrg(HOME_ORG);
+    token = signAdminToken(config.adminEmail, HOME_ORG);
+  } else {
+    const admin = await OrgAdmin.findOne({ email, active: true }).select("+passwordHash");
+    if (await checkPassword(password, admin?.passwordHash)) {
+      await requireActiveOrg(admin.org);
+      setOrg(admin.org);
+      token = signAdminToken(admin.email, admin.org, admin.tokenVersion);
     }
-    else{
-      return res.json({status:"Invalid credentials"})
-    }
-    // if (!admin) {
-    //   console.log("No matching admin found for:", email, password);
-    // }
-
-    // if (!admin) {
-    //   return res.json({ status: "No matching admin found" });
-    // }
-
-    // res.json({ status: "success" });
-  } catch (error) {
-    console.log("ERROR:", error);
-    res.status(500).json({ status: "Server Error" });
   }
+  logActivity({ actor: "Admin", type: token ? "login" : "login-failed" });
+  if (!token) throw new HttpError(401, "Invalid email or password.");
+  res.json({ token });
 });
+
+router.get("/me", requireAdmin, (req, res) => {
+  res.json({ email: req.admin.email, role: "Administrator", org: req.admin.org });
+});
+
+router.use("/teachers", requireAdmin, adminTeacherRoutes);
+
+// What a clean-up would remove right now. Changes nothing.
+router.get("/cleanup", requireAdmin, async (req, res) => {
+  res.json(await previewCleanup());
+});
+
+router.post("/cleanup", requireAdmin, async (req, res) => {
+  if (req.body.confirm !== true) throw new HttpError(400, "Please confirm the clean-up first.");
+  const result = await runCleanup();
+  logActivity({
+    actor: "Admin",
+    type: "cleanup",
+    details: `${result.recordsArchived} records to Excel, face data of ${result.facesDeleted} visitors deleted`,
+  });
+  res.json(result);
+});
+
+// Past visitors, read from the Excel files.
+router.get("/archive", requireAdmin, async (req, res) => {
+  res.json(await searchArchive({ search: String(req.query.search ?? ""), year: String(req.query.year ?? "") }));
+});
+
+router.use(requireAdmin, adminSecurityRoutes);
 
 module.exports = router;

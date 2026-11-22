@@ -1,36 +1,38 @@
 const mongoose = require("mongoose");
+const { tenantPlugin } = require("../services/tenant");
 
-//required or default sth m mt likho usse agr required false hgya toh default add hojaega
-const visitorSchema = new mongoose.Schema({
-  //required mtlb field compulsory hai hni hi chahiye
-  name: { type: String, required: true },
-  email: String,
-  phone: {type:String, required:true},
-  reason: {type:String,required:true},
-  toMeet: String,
-  date: Date,
-  passId: {
-    type: String,
-    required: true
+const STATUSES = ["pending", "verified", "approved", "rejected"];
+
+const visitorSchema = new mongoose.Schema(
+  {
+    name: { type: String, required: [true, "Name is required."], trim: true },
+    email: { type: String, required: [true, "Email is required."], trim: true, lowercase: true },
+    phone: { type: String, required: [true, "Phone number is required."], trim: true },
+    reason: { type: String, required: [true, "Reason is required."], trim: true },
+    toMeet: { type: String, trim: true },
+    teacherId: { type: mongoose.Schema.Types.ObjectId, ref: "Teacher", index: true },
+    date: Date,
+    visitTime: String, // "HH:mm", from a booked slot or a reschedule
+    groupMembers: { type: [String], default: [] }, // people coming with this visitor
+    rescheduled: Boolean,
+    clearedByTeacher: Boolean, // hidden from the teacher's list; the record stays
+    passId: { type: String, required: true, index: true },
+    // pending -> verified (OTP done) -> approved / rejected (admin)
+    status: { type: String, enum: STATUSES, default: "pending" },
+    entryTime: { type: Date, default: null },
+    exitTime: { type: Date, default: null },
+    entryGranted: Boolean, // the gate let them in (old records also hold refused scans)
+    exitClosedBy: String, // set when someone marked them as left without a scan
+    photo: String, // path of the registration photo on disk; removed with the face data
+    faceEncoding: { type: [Number], default: [], select: false },
+    faceDeletedAt: Date,
   },
-  status: {
-    type: String,
-    default: "pending"
-  },
-  entryTime: {type:Date,default:null},
-  exitTime: {type:Date,default:null},
-  //live photo capture hui hai jo gate pe vo store hogi
-  photo:{
-    type: String,
-   
-    required: true
-  },
-  //jo photo register tym dali thi uski encoding store hogi
-  faceEncoding:{
-    type:[Number],
-    default:[]
-  }
-}, { timestamps: true });
-//ye ek field h jisse created at and updatedat field bn jaege jisme jis time p ye document create hua tha mtlb jb user n register kia vo tym store hga or updated at m jb bhi document update hra h vo tym store hga 
-//visitor n kb register kia y pta lg jaega ///ya kb y docu update hua
-module.exports = mongoose.model("Visitor", visitorSchema);
+  { timestamps: true },
+);
+
+visitorSchema.plugin(tenantPlugin);
+
+const Visitor = mongoose.model("Visitor", visitorSchema);
+Visitor.STATUSES = STATUSES;
+
+module.exports = Visitor;
