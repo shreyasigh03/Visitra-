@@ -191,6 +191,9 @@ const VisitorRegistration = () => {
                   <option value={OTHER}>Other (write your own)</option>
                 </select>
               </Field>
+              {form.reason === "Delivery" && (
+                <p className="text-[12.5px] font-semibold text-[var(--ok-fg)] sm:col-span-2">Deliveries need no approval. The pass works at the gate on its day.</p>
+              )}
               {typeReason && (
                 <Field label="Your reason" id="otherReason">
                   <input {...bind("otherReason")} maxLength={100} pattern=".*\S.*" title="Please write your reason" placeholder="Why are you visiting?" className="input-clay w-full" />

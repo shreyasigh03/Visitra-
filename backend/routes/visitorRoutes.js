@@ -43,6 +43,8 @@ function readVisitorId(body) {
   return visitorId;
 }
 
+const isDelivery = (reason) => String(reason ?? "").trim().toLowerCase() === "delivery";
+
 const hashOtp = (otp) => crypto.createHash("sha256").update(otp).digest("hex");
 
 async function generatePassId() {
@@ -222,6 +224,12 @@ router.post("/verify-otp", verifyOtpLimiter, async (req, res) => {
     { status: "verified" },
     { returnDocument: "after" },
   );
+  // A delivery needs no approval: the guard lets it in on its day.
+  const delivery = Boolean(visitor) && isDelivery(visitor.reason);
+  if (delivery) {
+    visitor.set({ status: "approved", answeredAt: new Date() });
+    await visitor.save();
+  }
   // The hold may have run out while the visitor waited.
   const lostSlot = Boolean(visitor?.visitTime) && !(await confirmSlot(visitor._id));
   if (lostSlot) {
@@ -230,14 +238,16 @@ router.post("/verify-otp", verifyOtpLimiter, async (req, res) => {
   }
   res.json({
     status: "verified",
+    approved: delivery,
     visitTime: visitor?.visitTime,
     message: lostSlot ? "OTP verified, but your time was taken by someone else. The teacher will tell you a new time." : "OTP verified successfully.",
   });
 
   if (visitor) logActivity({ actor: "Visitor", type: "verified", visitor });
+  if (delivery) logActivity({ actor: "System", type: "approved", visitor, details: "Delivery, no approval needed" });
 
   // Only on the first verification, so the teacher is told once.
-  if (visitor?.teacherId) {
+  if (visitor?.teacherId && !delivery) {
     inBackground(notifyTeacher(visitor).catch((err) => console.error("[notify] teacher:", err.message)));
   }
 });

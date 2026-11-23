@@ -23,11 +23,12 @@ const Otpverification = () => {
 };
 
 const OtpForm = ({ registration, update }) => {
-  const { visitorId, email, verified, resendAt, showPass } = registration;
+  const { visitorId, email, verified, approved, resendAt } = registration;
   const approver = registration.teacherId ? registration.toMeet : "the admin";
   const [otp, setOtp] = useState("");
   const [message, setMessage] = useState(verified ? null : registration.notice);
   const [busy, setBusy] = useState(""); // "" | "verify" | "resend" | "pdf"
+  const [bigQr, setBigQr] = useState(false);
   const [now, setNow] = useState(() => Date.now());
   const qrRef = useRef(null);
 
@@ -64,24 +65,19 @@ const OtpForm = ({ registration, update }) => {
     run("verify", async () => {
       const data = await apiFetch("/api/visitor/verify-otp", { method: "POST", body: { visitorId, otp } });
       const lostTime = Boolean(registration.visitTime) && !data.visitTime;
-      update({ verified: true, visitTime: data.visitTime });
+      update({ verified: true, approved: data.approved, visitTime: data.visitTime, issuedAt: new Date().toLocaleString("en-IN") });
       setMessage({
         text: lostTime
           ? data.message
-          : registration.teacherId
+          : data.approved
+            ? "OTP verified. Deliveries need no approval: show this pass at the gate."
+            : registration.teacherId
             ? `OTP verified. ${registration.toMeet} has been told, and you'll get an email with the answer.`
             : "OTP verified. Your request is with the admin, and you'll get an email with the answer.",
         type: lostTime ? "warn" : "success",
       });
     });
   };
-
-  const instantVisit = () => {
-    update({ showPass: true, issuedAt: registration.issuedAt || new Date().toLocaleString("en-IN") });
-    setMessage({ text: "Pass generated successfully.", type: "success" });
-  };
-
-  const bookVisit = () => setMessage({ text: `Request sent. Waiting for ${approver} to approve.`, type: "info" });
 
   const rows = [
     ["Organization", registration.org],
@@ -106,7 +102,7 @@ const OtpForm = ({ registration, update }) => {
             {verified ? "Email verified" : "OTP verification"}
           </h1>
           <p className="mb-6 break-words text-[14.5px] leading-relaxed text-[var(--muted)]">
-            {verified ? "Choose how you would like to visit." : `Enter the 4-digit code sent to ${email}. It is valid for 5 minutes.`}
+            {verified ? "Your pass is ready." : `Enter the 4-digit code sent to ${email}. It is valid for 5 minutes.`}
           </p>
 
           {!verified && (
@@ -144,23 +140,11 @@ const OtpForm = ({ registration, update }) => {
             ))}
 
           {verified && (
-            <>
-              <div className="flex flex-col gap-3 sm:flex-row">
-                <button type="button" onClick={instantVisit} className="btn-primary flex-1 py-3 text-sm">Instant visit</button>
-                <button type="button" onClick={bookVisit} className="btn-soft flex-1 py-3 text-sm">Book visit</button>
-              </div>
-              <p className="mt-3 text-center text-[12.5px] text-[var(--muted)]">
-                Instant visit issues your pass now · Book visit waits for {approver} to approve.
-              </p>
-            </>
-          )}
-
-          {verified && showPass && (
             <section className="clay mt-6 rounded-[24px] p-5">
-              <div className="mb-4 flex items-center justify-between">
+              <div className="mb-4 flex items-center justify-between gap-2">
                 <h2 className="font-display text-[13px] font-extrabold tracking-[.14em] text-[var(--muted)]">VISITOR PASS</h2>
-                <span className="rounded-full px-2.5 py-1 text-[11px] font-extrabold" style={{ background: "var(--ok-bg)", color: "var(--ok-fg)" }}>
-                  VERIFIED
+                <span className="rounded-full px-2.5 py-1 text-[11px] font-extrabold" style={approved ? { background: "var(--ok-bg)", color: "var(--ok-fg)" } : { background: "var(--warn-bg)", color: "var(--warn-fg)" }}>
+                  {approved ? "APPROVED" : "WAITING FOR APPROVAL"}
                 </span>
               </div>
               <dl className="mb-4 grid gap-2.5 text-[13px] sm:grid-cols-2">
@@ -171,17 +155,51 @@ const OtpForm = ({ registration, update }) => {
                   </div>
                 ))}
               </dl>
-              <p className="font-display mb-3 text-lg font-extrabold">Pass ID: {registration.passId}</p>
-              <div ref={qrRef} className="flex justify-center rounded-[18px] bg-white p-4">
-                <QRCode value={registration.passId} size={130} />
-              </div>
-              <button type="button" onClick={downloadPass} disabled={Boolean(busy)} className="btn-primary mt-4 w-full py-3.5 text-sm">
-                {busy === "pdf" ? "Preparing…" : "Download pass"}
+              <button
+                type="button"
+                onClick={() => setBigQr(true)}
+                className="tile flex w-full cursor-pointer items-center gap-4 p-3 text-left transition hover:-translate-y-0.5"
+              >
+                <span ref={qrRef} className="shrink-0 rounded-xl bg-white p-2">
+                  <QRCode value={registration.passId} size={84} />
+                </span>
+                <span className="min-w-0">
+                  <span className="font-display block text-lg font-extrabold">Pass ID {registration.passId}</span>
+                  <span className="block text-[13px] font-bold text-[var(--accent)]">Show QR code</span>
+                </span>
               </button>
+              <p className="mt-3 text-[12.5px] text-[var(--muted)]">
+                {approved
+                  ? "Show this QR code at the gate on your visit day."
+                  : `The same QR code works at the gate once ${approver} approves. You'll get an email.`}
+              </p>
             </section>
           )}
         </div>
       </main>
+
+      {bigQr && (
+        <div className="fixed inset-0 z-[60] flex items-center justify-center bg-black/55 p-4" onClick={() => setBigQr(false)}>
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-label="Your QR code"
+            className="clay w-full max-w-[360px] rounded-[28px] p-6 text-center"
+            style={{ animation: "pop .3s ease both" }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <p className="font-display mb-1 text-lg font-extrabold">Pass ID {registration.passId}</p>
+            <p className="mb-4 text-[13px] text-[var(--muted)]">{approved ? "Approved" : "Waiting for approval"}</p>
+            <div className="mx-auto mb-5 w-fit rounded-[20px] bg-white p-4">
+              <QRCode value={registration.passId} size={230} />
+            </div>
+            <button type="button" onClick={downloadPass} disabled={Boolean(busy)} className="btn-primary w-full py-3.5 text-sm">
+              {busy === "pdf" ? "Preparing…" : "Download pass (PDF)"}
+            </button>
+            <button type="button" onClick={() => setBigQr(false)} className="btn-soft mt-3 w-full py-3 text-sm">Close</button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
